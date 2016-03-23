@@ -1,31 +1,37 @@
 package com.dao.mydebts;
 
+import android.annotation.SuppressLint;
+import android.content.ContentResolver;
+import android.database.Cursor;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ListView;
+import android.widget.SimpleCursorAdapter;
+
+import static android.provider.ContactsContract.Contacts;
+import static android.provider.ContactsContract.Data;
 
 public class GroupsListActivity extends AppCompatActivity {
+
+    @SuppressLint("InlinedApi")
+    private static final String[] PROJECTION = {Data._ID, Data.DISPLAY_NAME_PRIMARY,
+            Data.LOOKUP_KEY, Contacts.PHOTO_THUMBNAIL_URI};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_groups_list);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        final ListView list = (ListView) findViewById(R.id.list);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
+        ContentResolver contentResolver = getContentResolver();
+        Cursor cursor = contentResolver.query(Contacts.CONTENT_URI, PROJECTION, null, null, null);
+
+        list.setAdapter(new SimpleCursorAdapter(this, R.layout.list_item, cursor,
+                new String[] {Contacts.DISPLAY_NAME, Contacts.PHOTO_THUMBNAIL_URI},
+                new int[]{R.id.item_text, R.id.quickcontact},
+                SimpleCursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER));
     }
 
     @Override
