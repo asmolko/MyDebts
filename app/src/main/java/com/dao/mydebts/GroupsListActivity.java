@@ -46,6 +46,9 @@ public class GroupsListActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(layout);
         ContentResolver contentResolver = getContentResolver();
         final Cursor cursor = contentResolver.query(Contacts.CONTENT_URI, PROJECTION, null, null, null);
+        if (cursor == null) {
+            return;
+        }
 
         recyclerView.setAdapter(new RecyclerView.Adapter<ViewHolder>() {
 
