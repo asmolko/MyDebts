@@ -1,7 +1,5 @@
 package com.dao.mydebts.entities;
 
-import com.thoughtworks.xstream.annotations.XStreamAlias;
-
 import java.math.BigDecimal;
 
 /**
@@ -9,7 +7,6 @@ import java.math.BigDecimal;
  * 
  * Created by Oleg Chernovskiy on 23.03.16.
  */
-@XStreamAlias("debt")
 public class DebtInfo {
     
     private Person from;
