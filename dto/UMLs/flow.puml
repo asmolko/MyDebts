@@ -1,0 +1,15 @@
+@startuml
+actor Debtor
+actor Creditor
+database Server
+
+title Debt Fetch
+Creditor -> Server : get debts (by user id)
+Server -> Creditor : send debts (approved & non approved)
+
+newpage Debt creation
+Debtor -> Server : post new debt (approved by debtor)
+
+newpage Debt Approval
+Debtor -> Server : post approval (debt id)
+@enduml
