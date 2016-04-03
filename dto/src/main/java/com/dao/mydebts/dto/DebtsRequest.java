@@ -5,13 +5,13 @@ import com.dao.mydebts.entities.Person;
 /**
  * This is the first DTO to be sent in conversation.
  * It is a subject to subsequent additions, so created as class instead of reusing Person.
- * 
- * Created by Oleg Chernovskiy on 29.03.16.
+ *
+ * @author Oleg Chernovskiy on 29.03.16.
  */
 public class DebtsRequest {
-    
+
     private Person me;
-    
+
     public Person getMe() {
         return me;
     }

@@ -1,10 +1,10 @@
 package com.dao.mydebts.misc;
 
+import android.content.AsyncTaskLoader;
 import android.content.Context;
-import android.support.v4.content.AsyncTaskLoader;
 
 /**
- * Quick and dirty template of what's needed for network querying 
+ * Quick and dirty template of what's needed for network querying
  *
  * @author Oleg Chernovskiy
  */

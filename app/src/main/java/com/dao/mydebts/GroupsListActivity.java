@@ -1,14 +1,16 @@
 package com.dao.mydebts;
 
 import android.annotation.SuppressLint;
+import android.app.LoaderManager;
 import android.content.ContentResolver;
+import android.content.Loader;
 import android.content.res.AssetFileDescriptor;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.ContactsContract;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
@@ -21,8 +23,13 @@ import android.view.ViewGroup;
 import android.widget.QuickContactBadge;
 import android.widget.TextView;
 
+
+import com.dao.mydebts.entities.Debt;
+import com.dao.mydebts.misc.AbstractNetworkLoader;
+
 import java.io.FileDescriptor;
 import java.io.IOException;
+import java.util.List;
 
 import static android.provider.ContactsContract.Contacts;
 import static android.provider.ContactsContract.Data;
@@ -33,24 +40,28 @@ public class GroupsListActivity extends AppCompatActivity {
     private static final String[] PROJECTION = {Data._ID, Data.DISPLAY_NAME_PRIMARY,
             Data.LOOKUP_KEY, Contacts.PHOTO_THUMBNAIL_URI, Contacts.PHOTO_URI};
 
+    private static final int DEBT_REQUEST_LOADER = 0;
+
+    private RecyclerView mGroupList;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_groups_list);
-        final RecyclerView recyclerView = (RecyclerView) findViewById(R.id.list);
-        if (recyclerView == null) {
+        mGroupList = (RecyclerView) findViewById(R.id.list);
+        if (mGroupList == null) {
             return;
         }
 
         RecyclerView.LayoutManager layout = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
-        recyclerView.setLayoutManager(layout);
+        mGroupList.setLayoutManager(layout);
         ContentResolver contentResolver = getContentResolver();
         final Cursor cursor = contentResolver.query(Contacts.CONTENT_URI, PROJECTION, null, null, null);
         if (cursor == null) {
             return;
         }
 
-        recyclerView.setAdapter(new RecyclerView.Adapter<ViewHolder>() {
+        mGroupList.setAdapter(new RecyclerView.Adapter<ViewHolder>() {
 
             @Override
             public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -72,6 +83,8 @@ public class GroupsListActivity extends AppCompatActivity {
                 return cursor.getCount();
             }
         });
+
+        getLoaderManager().initLoader(GroupsListActivity.DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
     }
 
     class ViewHolder extends RecyclerView.ViewHolder {
@@ -122,5 +135,33 @@ public class GroupsListActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private class LoadDebtsCallback implements LoaderManager.LoaderCallbacks<List<Debt>> {
+        @Override
+        public Loader<List<Debt>> onCreateLoader(int i, Bundle args) {
+            return new AbstractNetworkLoader<List<Debt>>(GroupsListActivity.this) {
+
+                @Nullable
+                @Override
+                public List<Debt> loadInBackground() {
+
+
+                    return null;
+                }
+            };
+        }
+
+        @Override
+        public void onLoadFinished(Loader<List<Debt>> objectLoader, List<Debt> results) {
+            if(results != null) {
+                mGroupList.setAdapter(null);
+            }
+        }
+
+        @Override
+        public void onLoaderReset(Loader<List<Debt>> objectLoader) {
+
+        }
     }
 }

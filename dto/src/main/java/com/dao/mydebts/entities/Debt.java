@@ -4,16 +4,31 @@ import java.math.BigDecimal;
 
 /**
  * Identifies debt from one person to another in specific group matrix.
- * 
- * Created by Oleg Chernovskiy on 23.03.16.
+ *
+ * @author Oleg Chernovskiy on 23.03.16.
  */
-public class DebtInfo {
-    
+public class Debt {
+
+    public static final int APPROVED_BY_CREDITOR  = 0x1;
+    public static final int APPROVED_BY_DEBTOR    = 0x2;
+
+    private String id;
+
     private Person from;
-    
+
     private Person to;
-    
+
     private BigDecimal amount;
+
+    private int approvalFlags = APPROVED_BY_CREDITOR;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public Person getFrom() {
         return from;
@@ -37,5 +52,13 @@ public class DebtInfo {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public int getApprovalFlags() {
+        return approvalFlags;
+    }
+
+    public void setApprovalFlags(int approvalFlags) {
+        this.approvalFlags = approvalFlags;
     }
 }
