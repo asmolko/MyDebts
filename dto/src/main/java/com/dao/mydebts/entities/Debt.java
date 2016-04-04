@@ -1,6 +1,7 @@
 package com.dao.mydebts.entities;
 
 import java.math.BigDecimal;
+import java.util.Calendar;
 
 /**
  * Identifies debt from one person to another in specific group matrix.
@@ -19,6 +20,8 @@ public class Debt {
     private Person to;
 
     private BigDecimal amount;
+
+    private Calendar created;
 
     private int approvalFlags = APPROVED_BY_CREDITOR;
 
@@ -52,6 +55,14 @@ public class Debt {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public Calendar getCreated() {
+        return created;
+    }
+
+    public void setCreated(Calendar created) {
+        this.created = created;
     }
 
     public int getApprovalFlags() {
