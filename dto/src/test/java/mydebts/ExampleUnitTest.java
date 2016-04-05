@@ -23,7 +23,8 @@ public class ExampleUnitTest {
             "  \"to\": {\n" +
             "    \"id\": \"aef06198-f7be-4886-bf00-19045b2d48ea\"\n" +
             "  },\n" +
-            "  \"amount\": 500\n" +
+            "  \"amount\": 500,\n" +
+            "  \"approvalFlags\": 1\n" +
             "}";
 
     @Test

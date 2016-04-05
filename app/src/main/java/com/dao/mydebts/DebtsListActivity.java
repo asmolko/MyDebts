@@ -121,7 +121,7 @@ public class DebtsListActivity extends AppCompatActivity {
                             }
                         }
                     } catch (IOException e) {
-                        Log.e(DLA_TAG, "Couldn't request a debts list");
+                        Log.e(DLA_TAG, "Couldn't request a debts list", e);
                     }
 
                     return Collections.emptyList();
