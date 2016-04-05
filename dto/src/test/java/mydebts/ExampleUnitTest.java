@@ -6,8 +6,7 @@ import com.dao.mydebts.entities.Person;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.*;
 
 import java.math.BigDecimal;
 
@@ -28,6 +27,7 @@ public class ExampleUnitTest {
             "}";
 
     @Test
+    @Ignore
     public void gsonTest() throws Exception {
         Person orderer = new Person();
         orderer.setId("ebb558f9-3c16-4889-9603-d97dce150c15");
@@ -53,6 +53,7 @@ public class ExampleUnitTest {
             "}";
 
     @Test
+    @Ignore
     public void drequestTest() throws Exception {
         Person me = new Person();
         me.setId("ebb558f9-3c16-4889-9603-d97dce150c15");

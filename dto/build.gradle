@@ -4,4 +4,5 @@ dependencies {
     compile 'com.google.code.gson:gson:2.6.2'
 
     testCompile 'junit:junit:4.12'
+    compile 'org.codehaus.groovy:groovy-all:2.4.6'
 }

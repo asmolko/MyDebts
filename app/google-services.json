@@ -1,0 +1,56 @@
+{
+  "project_info": {
+    "project_id": "mydebts-5b5b0",
+    "project_number": "797792878862",
+    "name": "MyDebts"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:797792878862:android:9069e0fe9842b795",
+        "client_id": "android:com.dao.mydebts",
+        "client_type": 1,
+        "android_client_info": {
+          "package_name": "com.dao.mydebts",
+          "certificate_hash": []
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "797792878862-8j7eujl3eeugtm11ge37h0nuhir59vg2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dao.mydebts",
+            "certificate_hash": "5E1498FDB7C27F4A77246AC2754E04B2D9B3E9C1"
+          }
+        },
+        {
+          "client_id": "797792878862-o7abo3qdefnslreuoshdtvtc2hf6ttq1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "cloud_messaging_service": {
+          "status": 1,
+          "apns_config": []
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "google_signin_service": {
+          "status": 2
+        },
+        "ads_service": {
+          "status": 1
+        }
+      }
+    }
+  ],
+  "client_info": [],
+  "ARTIFACT_VERSION": "1"
+}
