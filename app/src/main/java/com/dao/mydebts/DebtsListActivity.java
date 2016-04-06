@@ -6,6 +6,7 @@ import android.content.ContentResolver;
 import android.content.Loader;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
@@ -26,6 +27,7 @@ import com.dao.mydebts.entities.Debt;
 import com.dao.mydebts.entities.Person;
 import com.dao.mydebts.misc.AbstractNetworkLoader;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -96,14 +98,14 @@ public class DebtsListActivity extends AppCompatActivity {
         public Loader<List<Debt>> onCreateLoader(int i, Bundle args) {
             return new AbstractNetworkLoader<List<Debt>>(DebtsListActivity.this) {
 
-                @Nullable
+                @NonNull
                 @Override
                 public List<Debt> loadInBackground() {
                     try {
                         // there may be some additional fields here, for now it only sets person
                         DebtsRequest postData = new DebtsRequest();
                         Person me = new Person();
-                        me.setId(UUID.randomUUID().toString());
+                        me.setId(UUID.randomUUID().toString()); // TODO
                         postData.setMe(me);
 
                         Request postQuery = new Request.Builder()
@@ -122,6 +124,8 @@ public class DebtsListActivity extends AppCompatActivity {
                         }
                     } catch (IOException e) {
                         Log.e(DLA_TAG, "Couldn't request a debts list", e);
+                    } catch (JsonSyntaxException e) {
+                        Log.e(DLA_TAG, "Answer could not be deserialized to correct response class", e);
                     }
 
                     return Collections.emptyList();
@@ -130,10 +134,8 @@ public class DebtsListActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onLoadFinished(Loader<List<Debt>> objectLoader, List<Debt> results) {
-            if(results != null) {
+        public void onLoadFinished(Loader<List<Debt>> objectLoader, @NonNull List<Debt> results) {
                 mGroupList.setAdapter(null);
-            }
         }
 
         @Override
