@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:id="@+id/debt_item_root"
+    android:layout_margin="5dp"
+    android:foreground="?android:attr/selectableItemBackground"
+    tools:ignore="PrivateResource">
+
+    <RelativeLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:descendantFocusability="blocksDescendants"
+        android:padding="10dp">
+
+        <QuickContactBadge
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentStart="true"
+            android:scaleType="centerCrop"
+            android:id="@+id/debt_item_contact_img"/>
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:id="@+id/debt_item_popup_menu"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:src="@drawable/abc_ic_menu_moreoverflow_mtrl_alpha"
+            android:tint="@android:color/darker_gray"
+            android:contentDescription="@string/popup_menu"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="@string/placeholder_text"
+            android:id="@+id/debt_item_contact_name"
+            android:layout_alignParentTop="true"
+            android:layout_toEndOf="@+id/debt_item_contact_img"
+            android:layout_toStartOf="@id/debt_item_popup_menu"
+            android:maxEms="15" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="@string/placeholder_date"
+            android:id="@+id/debt_item_date"
+            android:layout_below="@+id/debt_item_contact_name"
+            android:layout_toEndOf="@+id/debt_item_contact_img"
+            android:layout_marginTop="5dp"
+            android:layout_toStartOf="@id/debt_item_popup_menu"
+            android:maxEms="15" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="@android:color/holo_red_dark"
+            android:textStyle="bold"
+            android:text="@string/placeholder_number"
+            android:id="@+id/debt_item_amount"
+            android:layout_below="@+id/debt_item_date"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="5dp"
+            android:maxEms="15" />
+
+    </RelativeLayout>
+
+</android.support.v7.widget.CardView>

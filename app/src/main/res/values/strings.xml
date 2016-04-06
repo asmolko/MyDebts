@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">MyDebts</string>
     <string name="action_settings">Settings</string>
+    <string name="popup_menu">Контекстное меню</string>
+    <string name="placeholder_text">Lorem Ipsum</string>
+    <string name="placeholder_number">100500</string>
+    <string name="placeholder_date">10.05.2016</string>
 </resources>

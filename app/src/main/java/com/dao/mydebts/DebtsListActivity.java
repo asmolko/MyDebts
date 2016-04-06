@@ -7,20 +7,16 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.QuickContactBadge;
-import android.widget.TextView;
 
 
 import com.dao.mydebts.adapters.AccountsAdapter;
+import com.dao.mydebts.adapters.DebtsAdapter;
 import com.dao.mydebts.dto.DebtsRequest;
 import com.dao.mydebts.dto.DebtsResponse;
 import com.dao.mydebts.entities.Debt;
@@ -50,7 +46,7 @@ public class DebtsListActivity extends AppCompatActivity {
 
     private static final String DLA_TAG = DebtsListActivity.class.getSimpleName();
 
-    private RecyclerView mGroupList;
+    private RecyclerView mDebtList;
     private OkHttpClient mHttpClient = new OkHttpClient();
     private Gson mJsonSerializer = new Gson();
 
@@ -58,20 +54,20 @@ public class DebtsListActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_groups_list);
-        mGroupList = (RecyclerView) findViewById(R.id.list);
-        if (mGroupList == null) {
+        mDebtList = (RecyclerView) findViewById(R.id.list);
+        if (mDebtList == null) {
             return;
         }
 
         RecyclerView.LayoutManager layout = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
-        mGroupList.setLayoutManager(layout);
+        mDebtList.setLayoutManager(layout);
         ContentResolver contentResolver = getContentResolver();
         final Cursor cursor = contentResolver.query(Contacts.CONTENT_URI, ACCOUNTS_PROJECTION, null, null, null);
         if (cursor == null) {
             return;
         }
 
-        mGroupList.setAdapter(new AccountsAdapter(this, cursor));
+        mDebtList.setAdapter(new AccountsAdapter(this, cursor));
 
         // this will start debt list retrieval immediately after activity is in `started` state
         getLoaderManager().initLoader(Constants.DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
@@ -135,12 +131,12 @@ public class DebtsListActivity extends AppCompatActivity {
 
         @Override
         public void onLoadFinished(Loader<List<Debt>> objectLoader, @NonNull List<Debt> results) {
-                mGroupList.setAdapter(null);
+            mDebtList.setAdapter(new DebtsAdapter(results));
         }
 
         @Override
         public void onLoaderReset(Loader<List<Debt>> objectLoader) {
-
+            mDebtList.setAdapter(null);
         }
     }
 
