@@ -1,10 +1,9 @@
 package com.dao.mydebts;
 
-import android.annotation.SuppressLint;
+import android.accounts.AccountManager;
 import android.app.LoaderManager;
-import android.content.ContentResolver;
+import android.content.Intent;
 import android.content.Loader;
-import android.database.Cursor;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -13,64 +12,93 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-
-
-import com.dao.mydebts.adapters.AccountsAdapter;
 import com.dao.mydebts.adapters.DebtsAdapter;
 import com.dao.mydebts.dto.DebtsRequest;
 import com.dao.mydebts.dto.DebtsResponse;
 import com.dao.mydebts.entities.Debt;
 import com.dao.mydebts.entities.Person;
 import com.dao.mydebts.misc.AbstractNetworkLoader;
+import com.dao.mydebts.misc.AccountHolder;
+import com.google.android.gms.common.AccountPicker;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.plus.People;
+import com.google.android.gms.plus.Plus;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-
-import static android.provider.ContactsContract.Contacts;
-import static android.provider.ContactsContract.Data;
-
-public class DebtsListActivity extends AppCompatActivity {
-
-    @SuppressLint("InlinedApi")
-    private static final String[] ACCOUNTS_PROJECTION = {Data._ID, Data.DISPLAY_NAME_PRIMARY,
-            Data.LOOKUP_KEY, Contacts.PHOTO_THUMBNAIL_URI, Contacts.PHOTO_URI};
+public class DebtsListActivity extends AppCompatActivity implements ResultCallback<People.LoadPeopleResult> {
 
     private static final String DLA_TAG = DebtsListActivity.class.getSimpleName();
 
-    private RecyclerView mDebtList;
+    private RecyclerView mGroupList;
     private OkHttpClient mHttpClient = new OkHttpClient();
     private Gson mJsonSerializer = new Gson();
+    private int SIGN_IN_RETURN_CODE = 1050;
+    private GoogleApiClient mGoogleApiClient = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_groups_list);
-        mDebtList = (RecyclerView) findViewById(R.id.list);
-        if (mDebtList == null) {
+
+        if (AccountHolder.isAccountNameSaved(this)) {
+            requestVisiblePeople(AccountHolder.getSavedAccountName(this));
+        } else {
+            pickAccount();
+        }
+
+        mGroupList = (RecyclerView) findViewById(R.id.list);
+        if (mGroupList == null) {
             return;
         }
 
         RecyclerView.LayoutManager layout = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
-        mDebtList.setLayoutManager(layout);
-        ContentResolver contentResolver = getContentResolver();
-        final Cursor cursor = contentResolver.query(Contacts.CONTENT_URI, ACCOUNTS_PROJECTION, null, null, null);
-        if (cursor == null) {
-            return;
-        }
-
-        mDebtList.setAdapter(new AccountsAdapter(this, cursor));
-
+        mGroupList.setLayoutManager(layout);
         // this will start debt list retrieval immediately after activity is in `started` state
         getLoaderManager().initLoader(Constants.DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
+    }
+
+    //can also be used for account change
+    private void pickAccount() {
+        Intent intent = AccountPicker.newChooseAccountIntent(
+                null, null, new String[]{"com.google"},
+                false, null, null, null, null);
+        startActivityForResult(intent, SIGN_IN_RETURN_CODE);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == SIGN_IN_RETURN_CODE) {
+            String accountName = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
+            AccountHolder.saveAccountName(this, accountName);
+            requestVisiblePeople(accountName);
+        }
+    }
+
+    private void requestVisiblePeople(String accountName) {
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this /* FragmentActivity */, null /* OnConnectionFailedListener */)//todo fix null
+                .setAccountName(accountName)
+                .addApi(Plus.API)
+                .addScope(Plus.SCOPE_PLUS_LOGIN)
+                .addScope(Plus.SCOPE_PLUS_PROFILE)
+                .build();
+
+        mGoogleApiClient.connect();
+
+        Plus.PeopleApi.loadVisible(mGoogleApiClient, null).setResultCallback(this);
     }
 
     @Override
@@ -87,6 +115,14 @@ public class DebtsListActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onResult(People.LoadPeopleResult loadPeopleResult) {
+        //todo pasmapipa
+        if(loadPeopleResult.getStatus().isSuccess()) {
+            Log.d(DLA_TAG, "DO SOMETHING HERE RIGHT NOW AND UPDATE YOUR VIEW AFTER");
+        }
     }
 
     private class LoadDebtsCallback implements LoaderManager.LoaderCallbacks<List<Debt>> {
@@ -113,9 +149,12 @@ public class DebtsListActivity extends AppCompatActivity {
                         Response response = mHttpClient.newCall(postQuery).execute();
                         if (response.isSuccessful()) {
                             String result = response.body().string();
-                            DebtsResponse answer = mJsonSerializer.fromJson(result, DebtsResponse.class);
-                            if(answer != null && answer.getMe().getId().equals(me.getId())) {
-                                return answer.getDebts();
+                            try {
+                                DebtsResponse answer = mJsonSerializer.fromJson(result, DebtsResponse.class);
+                                if (answer != null && answer.getMe().getId().equals(me.getId())) {
+                                    return answer.getDebts();
+                                }
+                            } catch (JsonSyntaxException ignore) {
                             }
                         }
                     } catch (IOException e) {
@@ -131,12 +170,12 @@ public class DebtsListActivity extends AppCompatActivity {
 
         @Override
         public void onLoadFinished(Loader<List<Debt>> objectLoader, @NonNull List<Debt> results) {
-            mDebtList.setAdapter(new DebtsAdapter(results));
+            mGroupList.setAdapter(new DebtsAdapter(results));
         }
 
         @Override
         public void onLoaderReset(Loader<List<Debt>> objectLoader) {
-            mDebtList.setAdapter(null);
+            mGroupList.setAdapter(null);
         }
     }
 
