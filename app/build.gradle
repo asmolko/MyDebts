@@ -1,5 +1,4 @@
 apply plugin: 'com.android.application'
-apply plugin: 'com.google.gms.google-services'
 
 android {
     compileSdkVersion 23
@@ -36,11 +35,11 @@ dependencies {
     // internal dependencies
     compile project(':dto')
     // google-specific
-    compile 'com.android.support:appcompat-v7:23.2.1'
-    compile 'com.android.support:cardview-v7:23.2.1'
-    compile 'com.android.support:recyclerview-v7:23.2.1'
-    compile 'com.google.android.gms:play-services-auth:8.3.0'
-    compile 'com.google.android.gms:play-services:8.3.0'
+    compile 'com.android.support:appcompat-v7:23.3.0'
+    compile 'com.android.support:cardview-v7:23.3.0'
+    compile 'com.android.support:recyclerview-v7:23.3.0'
+    compile 'com.google.android.gms:play-services-plus:8.4.0'
+    compile 'com.google.android.gms:play-services:8.4.0'
     // 3rd party deps
     compile 'com.google.code.gson:gson:2.6.2'
     // JSON (de)serialization
@@ -48,3 +47,6 @@ dependencies {
     // convenient HTTP processing on Android
     testCompile 'junit:junit:4.12'
 }
+
+// must be below app config to detect dependency
+apply plugin: 'com.google.gms.google-services'

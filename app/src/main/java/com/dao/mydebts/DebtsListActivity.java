@@ -6,12 +6,14 @@ import android.content.Intent;
 import android.content.Loader;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+
 import com.dao.mydebts.adapters.DebtsAdapter;
 import com.dao.mydebts.dto.DebtsRequest;
 import com.dao.mydebts.dto.DebtsResponse;
@@ -20,31 +22,36 @@ import com.dao.mydebts.entities.Person;
 import com.dao.mydebts.misc.AbstractNetworkLoader;
 import com.dao.mydebts.misc.AccountHolder;
 import com.google.android.gms.common.AccountPicker;
+import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.plus.People;
 import com.google.android.gms.plus.Plus;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class DebtsListActivity extends AppCompatActivity implements ResultCallback<People.LoadPeopleResult> {
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+import static com.google.android.gms.common.GooglePlayServicesUtil.showErrorDialogFragment;
+
+public class DebtsListActivity extends AppCompatActivity {
 
     private static final String DLA_TAG = DebtsListActivity.class.getSimpleName();
+
+    private static final int SIGN_IN_RETURN_CODE = 1050;
 
     private RecyclerView mGroupList;
     private OkHttpClient mHttpClient = new OkHttpClient();
     private Gson mJsonSerializer = new Gson();
-    private int SIGN_IN_RETURN_CODE = 1050;
-    private GoogleApiClient mGoogleApiClient = null;
+    private GoogleApiClient mGoogleApiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,12 +65,8 @@ public class DebtsListActivity extends AppCompatActivity implements ResultCallba
         }
 
         mGroupList = (RecyclerView) findViewById(R.id.list);
-        if (mGroupList == null) {
-            return;
-        }
+        mGroupList.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
 
-        RecyclerView.LayoutManager layout = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
-        mGroupList.setLayoutManager(layout);
         // this will start debt list retrieval immediately after activity is in `started` state
         getLoaderManager().initLoader(Constants.DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
     }
@@ -88,17 +91,17 @@ public class DebtsListActivity extends AppCompatActivity implements ResultCallba
     }
 
     private void requestVisiblePeople(String accountName) {
+        PlusApiAsyncListener listener = new PlusApiAsyncListener();
         mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .enableAutoManage(this /* FragmentActivity */, null /* OnConnectionFailedListener */)//todo fix null
+                .enableAutoManage(this, listener)
+                .addConnectionCallbacks(listener)
                 .setAccountName(accountName)
                 .addApi(Plus.API)
                 .addScope(Plus.SCOPE_PLUS_LOGIN)
                 .addScope(Plus.SCOPE_PLUS_PROFILE)
                 .build();
 
-        mGoogleApiClient.connect();
-
-        Plus.PeopleApi.loadVisible(mGoogleApiClient, null).setResultCallback(this);
+        mGoogleApiClient.connect(GoogleApiClient.SIGN_IN_MODE_REQUIRED);
     }
 
     @Override
@@ -111,18 +114,11 @@ public class DebtsListActivity extends AppCompatActivity implements ResultCallba
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
+        switch (id) {
+            case  R.id.action_settings:
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onResult(People.LoadPeopleResult loadPeopleResult) {
-        //todo pasmapipa
-        if(loadPeopleResult.getStatus().isSuccess()) {
-            Log.d(DLA_TAG, "DO SOMETHING HERE RIGHT NOW AND UPDATE YOUR VIEW AFTER");
-        }
     }
 
     private class LoadDebtsCallback implements LoaderManager.LoaderCallbacks<List<Debt>> {
@@ -179,4 +175,34 @@ public class DebtsListActivity extends AppCompatActivity implements ResultCallba
         }
     }
 
+    private class PlusApiAsyncListener implements GoogleApiClient.ConnectionCallbacks,
+            ResultCallback<People.LoadPeopleResult>,
+            GoogleApiClient.OnConnectionFailedListener
+    {
+        @Override
+        public void onConnected(Bundle bundle) {
+            Plus.PeopleApi.loadVisible(mGoogleApiClient, null).setResultCallback(this);
+        }
+
+        @Override
+        public void onConnectionSuspended(int i) {
+
+        }
+
+        @Override
+        public void onResult(People.LoadPeopleResult loadPeopleResult) {
+            //todo pasmapipa
+            if(loadPeopleResult.getStatus().isSuccess()) {
+                loadPeopleResult.getPersonBuffer();
+            }
+        }
+
+        @Override
+        public void onConnectionFailed(ConnectionResult fail) {
+            Log.e(DLA_TAG, String.format("Couldn't connect to Google API due to %s", fail.getErrorMessage()));
+            if (!fail.hasResolution()) {
+                showErrorDialogFragment(fail.getErrorCode(), DebtsListActivity.this, new DialogFragment(), 0, null);
+            }
+        }
+    }
 }
