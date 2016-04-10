@@ -5,7 +5,7 @@ android {
         DebugConfig {
             keyAlias 'debts-key'
             keyPassword 'pam pam pam'
-            storeFile file('../../debts-debug.keystore')
+            storeFile file('/home/adonai/debts-debug.keystore')
             storePassword 'pam pam pam'
         }
     }
@@ -44,6 +44,7 @@ dependencies {
     compile 'com.android.support:appcompat-v7:23.3.0'
     compile 'com.android.support:cardview-v7:23.3.0'
     compile 'com.android.support:recyclerview-v7:23.3.0'
+    compile 'com.android.support:design:23.3.0'
     compile 'com.google.android.gms:play-services-plus:8.4.0'
     compile 'com.google.android.gms:play-services:8.4.0'
     // 3rd party deps

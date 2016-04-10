@@ -1,18 +1,31 @@
 package com.dao.mydebts;
 
 import android.accounts.AccountManager;
+import android.animation.Animator;
 import android.app.LoaderManager;
 import android.content.Intent;
 import android.content.Loader;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.DialogFragment;
+import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewAnimationUtils;
+import android.widget.AutoCompleteTextView;
+import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import com.dao.mydebts.adapters.DebtsAdapter;
 import com.dao.mydebts.dto.DebtsRequest;
@@ -31,7 +44,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,27 +63,65 @@ public class DebtsListActivity extends AppCompatActivity {
 
     private static final int SIGN_IN_RETURN_CODE = 1050;
 
+    private static final int MSG_CIRCLES_LOADED = 0;
+    private static final int MSG_DEBTS_LOADED   = 1;
+
+    // GUI-related
     private RecyclerView mGroupList;
+    private ProgressBar mProgress;
+    private FloatingActionButton mFloatingButton;
+
+    private CardView mDebtAddForm;
+    private AutoCompleteTextView mDebtAddPersonName;
+    private EditText mDebtAddAmount;
+
+    // Network-related
     private OkHttpClient mHttpClient = new OkHttpClient();
     private Gson mJsonSerializer = new Gson();
     private GoogleApiClient mGoogleApiClient;
+
+    // Custom
+    /**
+     * Contact list retrieved from Google+ circles
+     */
+    private List<com.google.android.gms.plus.model.people.Person> mContacts = new ArrayList<>();
+
+    /**
+     * Runs on UI thread and delivers custom notifications as requested by background threads
+     */
+    private Handler mUiHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_groups_list);
 
+        mGroupList = (RecyclerView) findViewById(R.id.list);
+        mGroupList.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
+        mProgress = (ProgressBar) findViewById(R.id.loader);
+        mFloatingButton = (FloatingActionButton) findViewById(R.id.floating_add_button);
+        mFloatingButton.setOnClickListener(new FabClickListener());
+        mFloatingButton.hide();
+
+        mDebtAddForm = (CardView) findViewById(R.id.debt_create_form);
+        mDebtAddPersonName = (AutoCompleteTextView) findViewById(R.id.debt_create_to_edit);
+        mDebtAddAmount = (EditText) findViewById(R.id.debt_create_amount);
+
+        mUiHandler = new Handler(new UiCallback());
+
+        // this will start debt list retrieval immediately after activity is in `started` state
+        getLoaderManager().initLoader(Constants.DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
         if (AccountHolder.isAccountNameSaved(this)) {
             requestVisiblePeople(AccountHolder.getSavedAccountName(this));
         } else {
             pickAccount();
         }
-
-        mGroupList = (RecyclerView) findViewById(R.id.list);
-        mGroupList.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
-
-        // this will start debt list retrieval immediately after activity is in `started` state
-        getLoaderManager().initLoader(Constants.DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
     }
 
     //can also be used for account change
@@ -190,10 +243,26 @@ public class DebtsListActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onResult(People.LoadPeopleResult loadPeopleResult) {
-            //todo pasmapipa
-            if(loadPeopleResult.getStatus().isSuccess()) {
-                loadPeopleResult.getPersonBuffer();
+        public void onResult(@NonNull People.LoadPeopleResult loadPeopleResult) {
+            try {
+                if (loadPeopleResult.getStatus().isSuccess()) {
+                    for (com.google.android.gms.plus.model.people.Person person : loadPeopleResult.getPersonBuffer()) {
+                        mContacts.add(person);
+                    }
+
+                    if (!TextUtils.isEmpty(loadPeopleResult.getNextPageToken())) {
+                        Plus.PeopleApi.loadVisible(mGoogleApiClient, loadPeopleResult.getNextPageToken())
+                                .setResultCallback(this);
+                        return;
+                    }
+
+                    mUiHandler.sendEmptyMessage(MSG_CIRCLES_LOADED);
+                    return;
+                }
+
+                Toast.makeText(DebtsListActivity.this, R.string.cannot_load_circles, Toast.LENGTH_SHORT).show();
+            } finally {
+                //loadPeopleResult.release();
             }
         }
 
@@ -202,6 +271,71 @@ public class DebtsListActivity extends AppCompatActivity {
             Log.e(DLA_TAG, String.format("Couldn't connect to Google API due to %s", fail.getErrorMessage()));
             if (!fail.hasResolution()) {
                 showErrorDialogFragment(fail.getErrorCode(), DebtsListActivity.this, new DialogFragment(), 0, null);
+            }
+        }
+    }
+
+    /**
+     * Callback for notifications that runs on UI thread
+     */
+    private class UiCallback implements Handler.Callback {
+
+        @Override
+        public boolean handleMessage(Message msg) {
+            switch (msg.what) {
+                case MSG_CIRCLES_LOADED:
+                    mProgress.animate().alpha(0.0f).setDuration(500).start();
+                    supportInvalidateOptionsMenu();
+                    mFloatingButton.show();
+                    return true;
+            }
+
+            return false;
+        }
+    }
+
+    private class FabClickListener implements View.OnClickListener {
+        @Override
+        public void onClick(View v) {
+            if(mDebtAddForm.getVisibility() == View.INVISIBLE) {
+                mFloatingButton.animate().rotation(45f).setDuration(300).start();
+                mDebtAddForm.setVisibility(View.VISIBLE);
+                Animator cr =  ViewAnimationUtils.createCircularReveal(mDebtAddForm,
+                        mDebtAddForm.getBottom(),
+                        mDebtAddForm.getRight(),
+                        0,
+                        Math.max(mDebtAddForm.getWidth(), mDebtAddForm.getHeight()) * 2);
+
+                cr.start();
+            } else {
+                mFloatingButton.animate().rotation(0f).setDuration(300).start();
+                Animator cr =  ViewAnimationUtils.createCircularReveal(mDebtAddForm,
+                        mDebtAddForm.getBottom(),
+                        mDebtAddForm.getRight(),
+                        Math.max(mDebtAddForm.getWidth(), mDebtAddForm.getHeight()) * 2,
+                        0);
+                cr.addListener(new Animator.AnimatorListener() {
+                    @Override
+                    public void onAnimationStart(Animator animation) {
+
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        mDebtAddForm.setVisibility(View.INVISIBLE);
+                    }
+
+                    @Override
+                    public void onAnimationCancel(Animator animation) {
+
+                    }
+
+                    @Override
+                    public void onAnimationRepeat(Animator animation) {
+
+                    }
+                });
+                cr.start();
             }
         }
     }

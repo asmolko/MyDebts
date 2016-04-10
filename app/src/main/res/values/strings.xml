@@ -5,4 +5,7 @@
     <string name="placeholder_text">Lorem Ipsum</string>
     <string name="placeholder_number">100500</string>
     <string name="placeholder_date">10.05.2016</string>
+    <string name="cannot_load_circles">Не удалось загрузить контакты из кругов :(</string>
+    <string name="start_writing_name">Начните вводить имя</string>
+    <string name="enter_amount">Введите сумму</string>
 </resources>
