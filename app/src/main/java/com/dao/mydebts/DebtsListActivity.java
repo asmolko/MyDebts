@@ -27,6 +27,7 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import com.dao.mydebts.adapters.AccountsAdapter;
 import com.dao.mydebts.adapters.DebtsAdapter;
 import com.dao.mydebts.dto.DebtsRequest;
 import com.dao.mydebts.dto.DebtsResponse;
@@ -72,8 +73,8 @@ public class DebtsListActivity extends AppCompatActivity {
     private FloatingActionButton mFloatingButton;
 
     private CardView mDebtAddForm;
-    private AutoCompleteTextView mDebtAddPersonName;
-    private EditText mDebtAddAmount;
+    private EditText mDebtAddPersonName;
+    private RecyclerView mDebtPersonList;
 
     // Network-related
     private OkHttpClient mHttpClient = new OkHttpClient();
@@ -104,10 +105,17 @@ public class DebtsListActivity extends AppCompatActivity {
         mFloatingButton.hide();
 
         mDebtAddForm = (CardView) findViewById(R.id.debt_create_form);
-        mDebtAddPersonName = (AutoCompleteTextView) findViewById(R.id.debt_create_to_edit);
-        mDebtAddAmount = (EditText) findViewById(R.id.debt_create_amount);
+        mDebtAddPersonName = (EditText) findViewById(R.id.debt_create_search_edit);
+        mDebtPersonList = (RecyclerView) findViewById(R.id.debt_create_contact_list);
+        mDebtPersonList.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
 
         mUiHandler = new Handler(new UiCallback());
+
+        if (AccountHolder.isAccountNameSaved(this)) {
+            requestVisiblePeople(AccountHolder.getSavedAccountName(this));
+        } else {
+            pickAccount();
+        }
 
         // this will start debt list retrieval immediately after activity is in `started` state
         getLoaderManager().initLoader(Constants.DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
@@ -116,12 +124,6 @@ public class DebtsListActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-
-        if (AccountHolder.isAccountNameSaved(this)) {
-            requestVisiblePeople(AccountHolder.getSavedAccountName(this));
-        } else {
-            pickAccount();
-        }
     }
 
     //can also be used for account change
@@ -287,6 +289,8 @@ public class DebtsListActivity extends AppCompatActivity {
                     mProgress.animate().alpha(0.0f).setDuration(500).start();
                     supportInvalidateOptionsMenu();
                     mFloatingButton.show();
+
+                    mDebtPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, mContacts));
                     return true;
             }
 
