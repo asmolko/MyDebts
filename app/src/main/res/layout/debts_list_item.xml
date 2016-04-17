@@ -6,7 +6,7 @@
     android:layout_height="wrap_content"
     android:id="@+id/debt_item_root"
     android:layout_margin="5dp"
-    android:foreground="?android:attr/selectableItemBackground"
+    android:background="?android:attr/selectableItemBackground"
     tools:ignore="PrivateResource">
 
     <RelativeLayout
@@ -16,7 +16,7 @@
         android:descendantFocusability="blocksDescendants"
         android:padding="10dp">
 
-        <QuickContactBadge
+        <ImageView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="5dp"

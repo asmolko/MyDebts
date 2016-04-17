@@ -8,4 +8,8 @@
     <string name="cannot_load_circles">Не удалось загрузить контакты из кругов :(</string>
     <string name="start_writing_name">Начните вводить имя</string>
     <string name="enter_amount">Введите сумму</string>
+    <string name="avatar">Avatar</string>
+    <string name="debt_amount">Сумма долга</string>
+    <string name="how_bad_is_it">Насколько всё плохо?</string>
+    <string name="unknown_person">Неизвестно (нет в кругах)</string>
 </resources>

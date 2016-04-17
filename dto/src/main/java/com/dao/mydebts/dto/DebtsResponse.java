@@ -1,7 +1,7 @@
 package com.dao.mydebts.dto;
 
+import com.dao.mydebts.entities.Actor;
 import com.dao.mydebts.entities.Debt;
-import com.dao.mydebts.entities.Person;
 
 import java.util.List;
 
@@ -13,15 +13,15 @@ import java.util.List;
  */
 public class DebtsResponse {
 
-    private Person me;
+    private Actor me;
 
     private List<Debt> debts;
 
-    public Person getMe() {
+    public Actor getMe() {
         return me;
     }
 
-    public void setMe(Person me) {
+    public void setMe(Actor me) {
         this.me = me;
     }
 

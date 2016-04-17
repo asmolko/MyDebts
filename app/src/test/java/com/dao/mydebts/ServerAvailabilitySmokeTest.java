@@ -2,7 +2,7 @@ package com.dao.mydebts;
 
 import com.dao.mydebts.dto.DebtsRequest;
 import com.dao.mydebts.dto.DebtsResponse;
-import com.dao.mydebts.entities.Person;
+import com.dao.mydebts.entities.Actor;
 import com.google.gson.Gson;
 
 import junit.framework.Assert;
@@ -31,7 +31,7 @@ public class ServerAvailabilitySmokeTest {
     @Test
     public void testDebtRequest() throws IOException {
         DebtsRequest postData = new DebtsRequest();
-        Person me = new Person();
+        Actor me = new Actor();
         me.setId("TEST-ID");
         postData.setMe(me);
 

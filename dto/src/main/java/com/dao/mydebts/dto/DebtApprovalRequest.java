@@ -1,6 +1,6 @@
 package com.dao.mydebts.dto;
 
-import com.dao.mydebts.entities.Person;
+import com.dao.mydebts.entities.Actor;
 
 /**
  * Sends approval request for known debt. The debt must have
@@ -15,15 +15,15 @@ import com.dao.mydebts.entities.Person;
  */
 public class DebtApprovalRequest {
 
-    private Person me;
+    private Actor me;
 
     private String debtIdToApprove;
 
-    public Person getMe() {
+    public Actor getMe() {
         return me;
     }
 
-    public void setMe(Person me) {
+    public void setMe(Actor me) {
         this.me = me;
     }
 

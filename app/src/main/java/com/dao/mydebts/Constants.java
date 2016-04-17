@@ -3,7 +3,7 @@ package com.dao.mydebts;
 import okhttp3.MediaType;
 
 /**
- * Created by adonai on 05.04.16.
+ * @author Oleg Chernovskiy on 05.04.16.
  */
 public class Constants {
 

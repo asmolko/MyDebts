@@ -1,8 +1,8 @@
 package mydebts;
 
 import com.dao.mydebts.dto.DebtsRequest;
+import com.dao.mydebts.entities.Actor;
 import com.dao.mydebts.entities.Debt;
-import com.dao.mydebts.entities.Person;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -29,10 +29,10 @@ public class ExampleUnitTest {
     @Test
     @Ignore
     public void gsonTest() throws Exception {
-        Person orderer = new Person();
+        Actor orderer = new Actor();
         orderer.setId("ebb558f9-3c16-4889-9603-d97dce150c15");
 
-        Person cParty = new Person();
+        Actor cParty = new Actor();
         cParty.setId("aef06198-f7be-4886-bf00-19045b2d48ea");
 
         Debt dInfo = new Debt();
@@ -55,7 +55,7 @@ public class ExampleUnitTest {
     @Test
     @Ignore
     public void drequestTest() throws Exception {
-        Person me = new Person();
+        Actor me = new Actor();
         me.setId("ebb558f9-3c16-4889-9603-d97dce150c15");
 
         DebtsRequest dr = new DebtsRequest();

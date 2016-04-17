@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.util.Calendar;
 
 /**
- * Identifies debt from one person to another in specific group matrix.
+ * Identifies debt from one person to another.
  *
  * @author Oleg Chernovskiy on 23.03.16.
  */
@@ -15,9 +15,9 @@ public class Debt {
 
     private String id;
 
-    private Person from;
+    private Actor from;
 
-    private Person to;
+    private Actor to;
 
     private BigDecimal amount;
 
@@ -33,19 +33,19 @@ public class Debt {
         this.id = id;
     }
 
-    public Person getFrom() {
+    public Actor getFrom() {
         return from;
     }
 
-    public void setFrom(Person from) {
+    public void setFrom(Actor from) {
         this.from = from;
     }
 
-    public Person getTo() {
+    public Actor getTo() {
         return to;
     }
 
-    public void setTo(Person to) {
+    public void setTo(Actor to) {
         this.to = to;
     }
 
