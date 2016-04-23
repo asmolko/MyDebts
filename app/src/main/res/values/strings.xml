@@ -12,4 +12,5 @@
     <string name="debt_amount">Сумма долга</string>
     <string name="how_bad_is_it">Насколько всё плохо?</string>
     <string name="unknown_person">Неизвестно (нет в кругах)</string>
+    <string name="image_cache_name">image_cache_name</string>
 </resources>

@@ -1,12 +1,12 @@
 package com.dao.mydebts.adapters;
 
+import android.content.Context;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.QuickContactBadge;
 import android.widget.TextView;
 
 import com.dao.mydebts.R;
@@ -15,7 +15,6 @@ import com.dao.mydebts.entities.Debt;
 import com.dao.mydebts.misc.ImageCache;
 
 import java.text.SimpleDateFormat;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -31,18 +30,21 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
 
     private final List<Debt> mDebts;
     private final Map<String, Contact> mContactsCache;
+    private final Context mContext;
 
     /**
      * Constructs new Debts Adapter.
      * The adapter itself cannot modify arguments provided to it.
      * Contact map is needed because server DTOs don't contain such fields as Display Name,
      * avatars, etc.
+     * @param context the Context
      * @param debts debts to construct adapter from
      * @param contactsCache contacts to populate contact fields from
      */
-    public DebtsAdapter(List<Debt> debts, Map<String, Contact> contactsCache) {
+    public DebtsAdapter(Context context, List<Debt> debts, Map<String, Contact> contactsCache) {
         this.mDebts = Collections.unmodifiableList(debts);
         this.mContactsCache = Collections.unmodifiableMap(contactsCache);
+        this.mContext = context;
     }
 
     @Override
@@ -69,7 +71,7 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
         }
 
         holder.name.setText(cached.getDisplayName());
-        holder.badge.setImageDrawable(ImageCache.getInstance().get(cached.getImageUrl()));
+        holder.badge.setImageDrawable(ImageCache.getInstance(mContext).get(cached.getImageUrl()));
         // TODO approval status
     }
 

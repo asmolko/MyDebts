@@ -114,7 +114,7 @@ public class DebtsListActivity extends AppCompatActivity {
 
         mDebtList = (RecyclerView) findViewById(R.id.list);
         mDebtList.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
-        mDebtList.setAdapter(new DebtsAdapter(mDebts, mContacts));
+        mDebtList.setAdapter(new DebtsAdapter(this, mDebts, mContacts));
 
         mProgress = (ProgressBar) findViewById(R.id.loader);
         mFloatingButton = (FloatingActionButton) findViewById(R.id.floating_add_button);
@@ -324,7 +324,7 @@ public class DebtsListActivity extends AppCompatActivity {
                     mFloatingButton.show();
 
                     List<Contact> forAdapter = new ArrayList<>(mContacts.values());
-                    mDebtPersonList.setAdapter(new AccountsAdapter(mBackgroundHandler, forAdapter));
+                    mDebtPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, mBackgroundHandler, forAdapter));
                     return true;
                 case MSG_DEBT_CREATED:
                     //getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();

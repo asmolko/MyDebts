@@ -1,6 +1,7 @@
 package com.dao.mydebts.adapters;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -54,17 +55,20 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
     private final Handler mObserver;
 
     private final ContactImageRetriever mImageLoader = new ContactImageRetriever();
+    private final Context mContext;
 
     /**
      * Constructs new AccountsAdapter.
      * The adapter itself cannot modify arguments provided to it.
      *
+     * @param context the Context
      * @param handler handler to send back notifications about click events
      * @param contacts contacts list to bould adapter items from
      */
-    public AccountsAdapter(Handler handler, List<Contact> contacts) {
+    public AccountsAdapter(Context context, Handler handler, List<Contact> contacts) {
         this.mContacts = Collections.unmodifiableList(contacts);
         this.mObserver = handler;
+        this.mContext = context;
     }
 
     @Override
@@ -165,14 +169,14 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
          * @param callback callback to execute after retrieval (executes in worker thread!)
          */
         private void loadImage(String url, BadgeCallback callback) {
-            Drawable cached = ImageCache.getInstance().get(url);
+            Drawable cached = ImageCache.getInstance(mContext).get(url);
             if(cached != null) {
                 callback.setRetrieved(cached);
                 callback.run();
+            } else {
+                Request req = new Request.Builder().url(url).build();
+                client.newCall(req).enqueue(callback);
             }
-
-            Request req = new Request.Builder().url(url).build();
-            client.newCall(req).enqueue(callback);
         }
 
     }
@@ -217,7 +221,7 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
                 rbd.setCornerRadius(Math.max(scaled.getWidth(), scaled.getHeight()) / 2.0f);
                 setRetrieved(rbd);
 
-                ImageCache.getInstance().put(call.request().url().toString(), rbd);
+                ImageCache.getInstance(null).put(call.request().url().toString(), rbd);
                 mCaller.post(this);
             }
         }
