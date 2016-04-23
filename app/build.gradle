@@ -5,7 +5,7 @@ android {
         DebugConfig {
             keyAlias 'debts-key'
             keyPassword 'pam pam pam'
-            storeFile file('/home/adonai/debts-debug.keystore')
+            storeFile file('../../debts-debug.keystore')
             storePassword 'pam pam pam'
         }
     }
@@ -48,10 +48,13 @@ dependencies {
     compile 'com.google.android.gms:play-services-plus:8.4.0'
     compile 'com.google.android.gms:play-services:8.4.0'
     // 3rd party deps
-    compile 'com.google.code.gson:gson:2.6.2'
     // JSON (de)serialization
-    compile 'com.squareup.okhttp3:okhttp:3.2.0'
+    compile 'com.google.code.gson:gson:2.6.2'
     // convenient HTTP processing on Android
+    compile 'com.squareup.okhttp3:okhttp:3.2.0'
+    // DB wrapper for Android
+    compile 'com.github.satyan:sugar:1.5'
+
     testCompile 'junit:junit:4.12'
 }
 

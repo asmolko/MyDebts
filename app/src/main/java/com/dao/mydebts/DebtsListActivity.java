@@ -44,6 +44,7 @@ import com.google.android.gms.plus.Plus;
 import com.google.android.gms.plus.model.people.Person;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
+import com.orm.SugarRecord;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -132,7 +133,14 @@ public class DebtsListActivity extends AppCompatActivity {
         mUiHandler = new Handler(new UiCallback());
 
         if (AccountHolder.isAccountNameSaved(this)) {
-            requestVisiblePeople(AccountHolder.getSavedAccountName(this));
+            List<Contact> forAdapter = SugarRecord.listAll(Contact.class);
+            mDebtPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, mBackgroundHandler, forAdapter));
+            mProgress.animate().alpha(0.0f).setDuration(0).start();
+            supportInvalidateOptionsMenu();
+            mFloatingButton.show();
+
+//            todo move to settings or some other manual action
+//            requestVisiblePeople(AccountHolder.getSavedAccountName(this));
         } else {
             pickAccount();
         }
@@ -224,7 +232,7 @@ public class DebtsListActivity extends AppCompatActivity {
                             String result = response.body().string();
                             try {
                                 DebtsResponse answer = mJsonSerializer.fromJson(result, DebtsResponse.class);
-                                if (answer != null && answer.getMe().getId().equals(mCurrentPerson.getId())) {
+                                if (answer != null && answer.getMe().getId().equals(mCurrentPerson.getGoogleId())) {
                                     return answer.getDebts();
                                 }
                             } catch (JsonSyntaxException ignore) {
@@ -324,6 +332,9 @@ public class DebtsListActivity extends AppCompatActivity {
                     mFloatingButton.show();
 
                     List<Contact> forAdapter = new ArrayList<>(mContacts.values());
+                    SugarRecord.deleteAll(Contact.class);
+                    for(Contact contact : forAdapter)
+                        SugarRecord.save(contact);
                     mDebtPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, mBackgroundHandler, forAdapter));
                     return true;
                 case MSG_DEBT_CREATED:
