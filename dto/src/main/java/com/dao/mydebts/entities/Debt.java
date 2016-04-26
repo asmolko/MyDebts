@@ -1,7 +1,10 @@
 package com.dao.mydebts.entities;
 
+import com.google.gson.annotations.JsonAdapter;
+
 import java.math.BigDecimal;
 import java.util.Calendar;
+import java.util.Date;
 
 /**
  * Identifies debt from one person to another.
@@ -10,20 +13,19 @@ import java.util.Calendar;
  */
 public class Debt {
 
-    public static final int APPROVED_BY_CREDITOR  = 0x1;
-    public static final int APPROVED_BY_DEBTOR    = 0x2;
-
     private String id;
 
-    private Actor from;
+    private Actor src;
 
-    private Actor to;
+    private Actor dest;
 
     private BigDecimal amount;
 
-    private Calendar created;
+    private Date created = new Date();
 
-    private int approvalFlags = APPROVED_BY_CREDITOR;
+    private boolean approvedBySrc = true;
+
+    private boolean approvedByDest = false;
 
     public String getId() {
         return id;
@@ -33,20 +35,20 @@ public class Debt {
         this.id = id;
     }
 
-    public Actor getFrom() {
-        return from;
+    public Actor getSrc() {
+        return src;
     }
 
-    public void setFrom(Actor from) {
-        this.from = from;
+    public void setSrc(Actor src) {
+        this.src = src;
     }
 
-    public Actor getTo() {
-        return to;
+    public Actor getDest() {
+        return dest;
     }
 
-    public void setTo(Actor to) {
-        this.to = to;
+    public void setDest(Actor dest) {
+        this.dest = dest;
     }
 
     public BigDecimal getAmount() {
@@ -57,19 +59,27 @@ public class Debt {
         this.amount = amount;
     }
 
-    public Calendar getCreated() {
+    public Date getCreated() {
         return created;
     }
 
-    public void setCreated(Calendar created) {
+    public void setCreated(Date created) {
         this.created = created;
     }
 
-    public int getApprovalFlags() {
-        return approvalFlags;
+    public boolean isApprovedBySrc() {
+        return approvedBySrc;
     }
 
-    public void setApprovalFlags(int approvalFlags) {
-        this.approvalFlags = approvalFlags;
+    public void setApprovedBySrc(boolean approvedBySrc) {
+        this.approvedBySrc = approvedBySrc;
+    }
+
+    public boolean isApprovedByDest() {
+        return approvedByDest;
+    }
+
+    public void setApprovedByDest(boolean approvedByDest) {
+        this.approvedByDest = approvedByDest;
     }
 }

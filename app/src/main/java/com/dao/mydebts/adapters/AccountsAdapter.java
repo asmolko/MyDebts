@@ -134,9 +134,8 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
 
                                 // convert to app entities
                                 Debt toCreate = new Debt();
-                                toCreate.setTo(who.toActor());
+                                toCreate.setDest(who.toActor());
                                 toCreate.setAmount(new BigDecimal(amount));
-                                toCreate.setCreated(Calendar.getInstance());
 
                                 // send back to activity
                                 Message msg = Message.obtain(mObserver, DebtsListActivity.MSG_CREATE_DEBT, toCreate);

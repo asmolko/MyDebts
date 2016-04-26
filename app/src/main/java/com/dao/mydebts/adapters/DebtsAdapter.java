@@ -63,7 +63,7 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
         holder.date.setText(sdf.format(requested.getCreated().getTime()));
         holder.amount.setText(requested.getAmount().toPlainString());
 
-        Contact cached = mContactsCache.get(requested.getTo().getId());
+        Contact cached = mContactsCache.get(requested.getDest().getId());
         if(cached == null) { // you have no such person in your Plus Circles
             holder.name.setText(R.string.unknown_person);
             holder.badge.setImageDrawable(null);

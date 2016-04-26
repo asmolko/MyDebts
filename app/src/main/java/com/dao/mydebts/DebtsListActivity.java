@@ -310,7 +310,7 @@ public class DebtsListActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onConnectionFailed(ConnectionResult fail) {
+        public void onConnectionFailed(@NonNull ConnectionResult fail) {
             Log.e(DLA_TAG, String.format("Couldn't connect to Google API due to %s", fail.getErrorMessage()));
             if (!fail.hasResolution()) {
                 showErrorDialogFragment(fail.getErrorCode(), DebtsListActivity.this, new DialogFragment(), 0, null);
@@ -361,7 +361,7 @@ public class DebtsListActivity extends AppCompatActivity {
             switch (msg.what) {
                 case MSG_CREATE_DEBT:
                     Debt toCreate = (Debt) msg.obj;
-                    toCreate.setFrom(mCurrentPerson.toActor());
+                    toCreate.setSrc(mCurrentPerson.toActor());
 
                     // enclose it in request
                     DebtCreationRequest dcr = new DebtCreationRequest();
