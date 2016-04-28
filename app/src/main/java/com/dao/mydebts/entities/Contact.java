@@ -11,7 +11,8 @@ import com.orm.dsl.Table;
  */
 @Table
 public class Contact {
-    private Long id;//for db
+
+    private Long id; //for db
 
     private final String imageUrl;
     private final String displayName;

@@ -50,7 +50,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 
 import okhttp3.OkHttpClient;
@@ -132,8 +134,21 @@ public class DebtsListActivity extends AppCompatActivity {
         mBackgroundHandler = new Handler(thr.getLooper(), new BackgroundCallback());
         mUiHandler = new Handler(new UiCallback());
 
-        if (AccountHolder.isAccountNameSaved(this)) {
+        if (AccountHolder.isAccountNameSaved(this)) { // circles were already loaded
+            String ourGoogleId = AccountHolder.getSavedGoogleId(this);
             List<Contact> forAdapter = SugarRecord.listAll(Contact.class);
+            ListIterator<Contact> itr = forAdapter.listIterator();
+
+            // remove us from list, also populate contacts map
+            while (itr.hasNext()) {
+                Contact c = itr.next();
+                mContacts.put(c.getGoogleId(), c);
+                if(c.getGoogleId().equals(ourGoogleId)) {
+                    mCurrentPerson = c;
+                    itr.remove();
+                }
+            }
+
             mDebtPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, mBackgroundHandler, forAdapter));
             mProgress.animate().alpha(0.0f).setDuration(0).start();
             supportInvalidateOptionsMenu();
@@ -144,6 +159,8 @@ public class DebtsListActivity extends AppCompatActivity {
         } else {
             pickAccount();
         }
+
+        getLoaderManager().initLoader(Constants.DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
     }
 
     @Override
@@ -212,6 +229,13 @@ public class DebtsListActivity extends AppCompatActivity {
         public Loader<List<Debt>> onCreateLoader(int i, Bundle args) {
             return new AbstractNetworkLoader<List<Debt>>(DebtsListActivity.this) {
 
+                @Override
+                protected void onStartLoading() {
+                    if(mCurrentPerson != null) {
+                        super.onStartLoading();
+                    }
+                }
+
                 @NonNull
                 @Override
                 public List<Debt> loadInBackground() {
@@ -221,8 +245,7 @@ public class DebtsListActivity extends AppCompatActivity {
                         postData.setMe(mCurrentPerson.toActor());
 
                         Request postQuery = new Request.Builder()
-                                .url(Constants.DEFAULT_SERVER_URL)
-                                .header("X-DTO-Class", postData.getClass().toString())
+                                .url(Constants.SERVER_ENDPOINT_DEBTS)
                                 .post(RequestBody.create(Constants.JSON_MIME_TYPE, mJsonSerializer.toJson(postData)))
                                 .build();
 
@@ -251,7 +274,7 @@ public class DebtsListActivity extends AppCompatActivity {
 
         @Override
         public void onLoadFinished(Loader<List<Debt>> objectLoader, @NonNull List<Debt> results) {
-            mDebtList.getAdapter().notifyDataSetChanged();
+            mDebtList.setAdapter(new DebtsAdapter(DebtsListActivity.this, mDebts, mContacts));
         }
 
         @Override
@@ -272,12 +295,13 @@ public class DebtsListActivity extends AppCompatActivity {
             // Docs suggest to use SignIn API for this, but we can't, as we use Plus
             // noinspection deprecation
             mCurrentPerson = new Contact(Plus.PeopleApi.getCurrentPerson(mGoogleApiClient));
-
-            // Now we have current person account, it's safe to load debts to main window
-            getLoaderManager().initLoader(Constants.DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
+            AccountHolder.saveGoogleId(DebtsListActivity.this, mCurrentPerson.getGoogleId());
 
             // Meanwhile, preload circles in background
             Plus.PeopleApi.loadVisible(mGoogleApiClient, null).setResultCallback(this);
+
+            // update visible debts
+            getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();
         }
 
         @Override
@@ -331,10 +355,12 @@ public class DebtsListActivity extends AppCompatActivity {
                     supportInvalidateOptionsMenu();
                     mFloatingButton.show();
 
+                    // cache
                     List<Contact> forAdapter = new ArrayList<>(mContacts.values());
                     SugarRecord.deleteAll(Contact.class);
-                    for(Contact contact : forAdapter)
-                        SugarRecord.save(contact);
+                    SugarRecord.saveInTx(forAdapter); // save our circles
+                    SugarRecord.save(mCurrentPerson); // save us
+
                     mDebtPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, mBackgroundHandler, forAdapter));
                     return true;
                 case MSG_DEBT_CREATED:

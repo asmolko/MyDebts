@@ -7,7 +7,10 @@ import okhttp3.MediaType;
  */
 public class Constants {
 
-    public static final String DEFAULT_SERVER_URL = "http://sorseg.ru:1337";
+    //private static final String SERVER_ENDPOINT = "sorseg.ru:8080/debt/";
+    private static final String SERVER_ENDPOINT = "http://demoth.no-ip.org:8080/debt/";
+
+    public static final String SERVER_ENDPOINT_DEBTS = SERVER_ENDPOINT + "debts";
 
     public static final MediaType JSON_MIME_TYPE = MediaType.parse("text/json");
 
