@@ -53,39 +53,41 @@ public class ImageCache {
     }
 
     public Drawable get(String url) {
-        if (url == null)
+        if (url == null || url.isEmpty())
             return null;
 
         Drawable drawable = mCache.get(url);
 
-        if (drawable == null) {
+        if (drawable != null) {
+            return drawable;
+        }
+        try {
+            String diskKey = getDiskKey(url);
+            DiskLruCache.Snapshot snapshot = mDiskCache.get(diskKey);
+            if (snapshot == null) {
+                Log.d(IC_TAG, "Disk Cache for " + diskKey + " key doesn't exists");
+                return null;
+            }
+            Source source = snapshot.getSource(0);
+            Buffer buffer = new Buffer();
+            while (source.read(buffer, 1000) != -1) {
+            }
+            Bitmap bitmap = BitmapFactory.decodeStream(buffer.inputStream());
+            if (bitmap == null) {
+                return null;
+            }
+
+            RoundedBitmapDrawable rbd = RoundedBitmapDrawableFactory.create(null, bitmap);
+            rbd.setCornerRadius(Math.max(bitmap.getWidth(), bitmap.getHeight()) / 2.0f);
+
+            mCache.put(diskKey, rbd);
+            drawable = rbd;
+        } catch (IOException e) {
+            Log.e(IC_TAG, "Disk Cache is corrupted", e);
             try {
-                String diskKey = getDiskKey(url);
-                DiskLruCache.Snapshot snapshot = mDiskCache.get(diskKey);
-                if (snapshot == null) {
-                    Log.d(IC_TAG, "Disk Cache for " + diskKey + " key doesn't exists");
-                    return null;
-                }
-                Source source = snapshot.getSource(0);
-                Buffer buffer = new Buffer();
-                while (source.read(buffer, 1000) != -1) {
-                }
-                Bitmap bitmap = BitmapFactory.decodeStream(buffer.inputStream());
-                if (bitmap == null) {
-                    return null;
-                }
-
-                RoundedBitmapDrawable rbd = RoundedBitmapDrawableFactory.create(null, bitmap);
-                rbd.setCornerRadius(Math.max(bitmap.getWidth(), bitmap.getHeight()) / 2.0f);
-
-                mCache.put(diskKey, rbd);
-            } catch (IOException e) {
-                Log.e(IC_TAG, "Disk Cache is corrupted", e);
-                try {
-                    mDiskCache.delete();
-                } catch (IOException e1) {
-                    Log.e(IC_TAG, "Disk Cache is corrupted, delete failed",e1);
-                }
+                mDiskCache.delete();
+            } catch (IOException e1) {
+                Log.e(IC_TAG, "Disk Cache is corrupted, delete failed",e1);
             }
         }
 

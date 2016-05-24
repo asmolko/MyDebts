@@ -3,12 +3,14 @@ package com.dao.mydebts.adapters;
 import android.content.Context;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.RecyclerView.Adapter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.dao.mydebts.DebtsListActivity;
 import com.dao.mydebts.R;
 import com.dao.mydebts.entities.Contact;
 import com.dao.mydebts.entities.Debt;
@@ -31,6 +33,7 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
     private final List<Debt> mDebts;
     private final Map<String, Contact> mContactsCache;
     private final Context mContext;
+    private final DebtsListActivity.DebtClickListener debtClickListener;
 
     /**
      * Constructs new Debts Adapter.
@@ -41,10 +44,11 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
      * @param debts debts to construct adapter from
      * @param contactsCache contacts to populate contact fields from
      */
-    public DebtsAdapter(Context context, List<Debt> debts, Map<String, Contact> contactsCache) {
+    public DebtsAdapter(Context context, List<Debt> debts, Map<String, Contact> contactsCache, DebtsListActivity.DebtClickListener debtClickListener) {
         this.mDebts = Collections.unmodifiableList(debts);
         this.mContactsCache = Collections.unmodifiableMap(contactsCache);
         this.mContext = context;
+        this.debtClickListener = debtClickListener;
     }
 
     @Override
@@ -97,7 +101,7 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
         public AccViewHolder(View view) {
             super(view);
             CardView main = (CardView) view.findViewById(R.id.debt_item_root); // TODO: add click events
-
+            main.setOnClickListener(debtClickListener);
             badge = (ImageView) main.findViewById(R.id.debt_item_contact_img);
             name = (TextView) main.findViewById(R.id.debt_item_contact_name);
             date = (TextView) view.findViewById(R.id.debt_item_date);

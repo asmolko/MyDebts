@@ -5,6 +5,8 @@ import android.animation.Animator;
 import android.app.LoaderManager;
 import android.content.Intent;
 import android.content.Loader;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -21,9 +23,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewAnimationUtils;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.dao.mydebts.adapters.AccountsAdapter;
@@ -47,8 +52,10 @@ import com.google.gson.JsonSyntaxException;
 import com.orm.SugarRecord;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -69,9 +76,9 @@ public class DebtsListActivity extends AppCompatActivity {
     private static final int SIGN_IN_RETURN_CODE = 1050;
 
     public static final int MSG_CIRCLES_LOADED = 0;
-    public static final int MSG_DEBTS_LOADED   = 1;
-    public static final int MSG_CREATE_DEBT    = 2;
-    public static final int MSG_DEBT_CREATED   = 3;
+    public static final int MSG_DEBTS_LOADED = 1;
+    public static final int MSG_CREATE_DEBT = 2;
+    public static final int MSG_DEBT_CREATED = 3;
 
     // GUI-related
     private RecyclerView mDebtList;
@@ -79,6 +86,7 @@ public class DebtsListActivity extends AppCompatActivity {
     private FloatingActionButton mFloatingButton;
 
     private CardView mDebtAddForm;
+    private CardView mDebtApproveForm;
     private EditText mDebtAddPersonName;
     private RecyclerView mDebtPersonList;
 
@@ -106,6 +114,7 @@ public class DebtsListActivity extends AppCompatActivity {
     private Handler mUiHandler;
     /**
      * Runs on background thread
+     *
      * @see #onCreate(Bundle)
      */
     private Handler mBackgroundHandler;
@@ -117,7 +126,10 @@ public class DebtsListActivity extends AppCompatActivity {
 
         mDebtList = (RecyclerView) findViewById(R.id.list);
         mDebtList.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
-        mDebtList.setAdapter(new DebtsAdapter(this, mDebts, mContacts));
+        mDebtApproveForm = (CardView) findViewById(R.id.debt_approve_form);
+        DebtClickListener debtClickListener = new DebtClickListener(mDebtApproveForm);
+        DebtsAdapter adapter = new DebtsAdapter(this, mDebts, mContacts, debtClickListener);
+        mDebtList.setAdapter(adapter);
 
         mProgress = (ProgressBar) findViewById(R.id.loader);
         mFloatingButton = (FloatingActionButton) findViewById(R.id.floating_add_button);
@@ -143,7 +155,7 @@ public class DebtsListActivity extends AppCompatActivity {
             while (itr.hasNext()) {
                 Contact c = itr.next();
                 mContacts.put(c.getGoogleId(), c);
-                if(c.getGoogleId().equals(ourGoogleId)) {
+                if (c.getGoogleId().equals(ourGoogleId)) {
                     mCurrentPerson = c;
                     itr.remove();
                 }
@@ -218,8 +230,8 @@ public class DebtsListActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         switch (id) {
-            case  R.id.action_settings:
-            return true;
+            case R.id.action_settings:
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -231,7 +243,7 @@ public class DebtsListActivity extends AppCompatActivity {
 
                 @Override
                 protected void onStartLoading() {
-                    if(mCurrentPerson != null) {
+                    if (mCurrentPerson != null) {
                         super.onStartLoading();
                     }
                 }
@@ -274,7 +286,18 @@ public class DebtsListActivity extends AppCompatActivity {
 
         @Override
         public void onLoadFinished(Loader<List<Debt>> objectLoader, @NonNull List<Debt> results) {
-            mDebtList.setAdapter(new DebtsAdapter(DebtsListActivity.this, mDebts, mContacts));
+            mDebts.clear();
+            mDebts.addAll(results);
+
+            Debt debt = new Debt();
+            debt.setSrc(DebtsListActivity.this.mCurrentPerson.toActor());
+            debt.setDest(DebtsListActivity.this.mContacts.get("114782373662009354334").toActor());
+            debt.setAmount(new BigDecimal("123123.21"));
+            debt.setCreated(new Date());
+            ((ArrayList) mDebts).add(debt);
+
+            mDebtList.getAdapter().notifyDataSetChanged();
+//            mDebtList.setAdapter(new DebtsAdapter(DebtsListActivity.this, mDebts, mContacts));
         }
 
         @Override
@@ -288,8 +311,7 @@ public class DebtsListActivity extends AppCompatActivity {
      */
     private class PlusApiAsyncListener implements GoogleApiClient.ConnectionCallbacks,
             ResultCallback<People.LoadPeopleResult>,
-            GoogleApiClient.OnConnectionFailedListener
-    {
+            GoogleApiClient.OnConnectionFailedListener {
         @Override
         public void onConnected(Bundle bundle) {
             // Docs suggest to use SignIn API for this, but we can't, as we use Plus
@@ -404,13 +426,13 @@ public class DebtsListActivity extends AppCompatActivity {
         }
     }
 
-    private class FabClickListener implements View.OnClickListener {
+    private class FabClickListener implements OnClickListener {
         @Override
         public void onClick(View v) {
-            if(mDebtAddForm.getVisibility() == View.INVISIBLE) {
+            if (mDebtAddForm.getVisibility() == View.INVISIBLE) {
                 mFloatingButton.animate().rotation(45f).setDuration(300).start();
                 mDebtAddForm.setVisibility(View.VISIBLE);
-                Animator cr =  ViewAnimationUtils.createCircularReveal(mDebtAddForm,
+                Animator cr = ViewAnimationUtils.createCircularReveal(mDebtAddForm,
                         mDebtAddForm.getBottom(),
                         mDebtAddForm.getRight(),
                         0,
@@ -419,7 +441,7 @@ public class DebtsListActivity extends AppCompatActivity {
                 cr.start();
             } else {
                 mFloatingButton.animate().rotation(0f).setDuration(300).start();
-                Animator cr =  ViewAnimationUtils.createCircularReveal(mDebtAddForm,
+                Animator cr = ViewAnimationUtils.createCircularReveal(mDebtAddForm,
                         mDebtAddForm.getBottom(),
                         mDebtAddForm.getRight(),
                         Math.max(mDebtAddForm.getWidth(), mDebtAddForm.getHeight()) * 2,
@@ -446,6 +468,35 @@ public class DebtsListActivity extends AppCompatActivity {
                     }
                 });
                 cr.start();
+            }
+        }
+    }
+
+    public class DebtClickListener implements OnClickListener {
+        private final CardView mDebtApproveForm;
+        private final TextView mContactNameView;
+        private final ImageView mContactImageView;
+        private final TextView mAmountTextView;
+
+        public DebtClickListener(CardView mDebtApproveForm) {
+            this.mDebtApproveForm = mDebtApproveForm;
+            mContactImageView = (ImageView) mDebtApproveForm.findViewById(R.id.contact_img);
+            mContactNameView = (TextView) mDebtApproveForm.findViewById(R.id.contact_name);
+            mAmountTextView = (TextView) mDebtApproveForm.findViewById(R.id.amount_text);
+        }
+
+        @Override
+        public void onClick(View v) {
+            if (mDebtApproveForm.getVisibility() == View.INVISIBLE) {
+//                ImageView badge = (ImageView) v.findViewById(R.id.debt_item_contact_img);
+                TextView name = (TextView) v.findViewById(R.id.debt_item_contact_name);
+//                mContactImageView.setImageDrawable(badge.getDrawable());
+                mContactImageView.setImageDrawable(new ColorDrawable(Color.BLACK));
+                mContactNameView.setText(name.getText());
+
+                mDebtApproveForm.setVisibility(View.VISIBLE);
+            } else {
+                mDebtApproveForm.setVisibility(View.INVISIBLE);
             }
         }
     }
