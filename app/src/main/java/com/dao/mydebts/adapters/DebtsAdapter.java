@@ -4,6 +4,7 @@ import android.content.Context;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.RecyclerView.Adapter;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +15,7 @@ import com.dao.mydebts.DebtsListActivity;
 import com.dao.mydebts.R;
 import com.dao.mydebts.entities.Contact;
 import com.dao.mydebts.entities.Debt;
+import com.dao.mydebts.misc.AccountHolder;
 import com.dao.mydebts.misc.ImageCache;
 
 import java.text.SimpleDateFormat;
@@ -59,15 +61,29 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
         return new AccViewHolder(itemView);
     }
 
+    @SuppressWarnings("deprecation") // getColor(int, Theme) for API23 only
     @Override
     public void onBindViewHolder(DebtsAdapter.AccViewHolder holder, int position) {
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault());
         Debt requested = mDebts.get(position);
 
         holder.date.setText(sdf.format(requested.getCreated().getTime()));
-        holder.amount.setText(requested.getAmount().toPlainString());
+        Contact cached = null;
 
-        Contact cached = mContactsCache.get(requested.getDest().getId());
+        // we're in debt
+        if (TextUtils.equals(requested.getSrc().getId(), AccountHolder.getSavedGoogleId(mContext))) {
+            holder.amount.setText(String.format(Locale.getDefault(), "-%s", requested.getAmount().toPlainString()));
+            holder.amount.setTextColor(mContext.getResources().getColor(android.R.color.holo_red_dark));
+            cached = mContactsCache.get(requested.getDest().getId());
+        }
+
+        // someone is in debt with us
+        if (TextUtils.equals(requested.getDest().getId(), AccountHolder.getSavedGoogleId(mContext))) {
+            holder.amount.setText(String.format(Locale.getDefault(), "+%s", requested.getAmount().toPlainString()));
+            holder.amount.setTextColor(mContext.getResources().getColor(android.R.color.holo_green_dark));
+            cached = mContactsCache.get(requested.getDest().getId());
+        }
+
         if(cached == null) { // you have no such person in your Plus Circles
             holder.name.setText(R.string.unknown_person);
             holder.badge.setImageDrawable(null);
@@ -76,7 +92,6 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
 
         holder.name.setText(cached.getDisplayName());
         holder.badge.setImageDrawable(ImageCache.getInstance(mContext).get(cached.getImageUrl()));
-        // TODO approval status
     }
 
     @Override

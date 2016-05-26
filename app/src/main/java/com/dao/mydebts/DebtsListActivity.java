@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
@@ -36,6 +37,7 @@ import com.dao.mydebts.adapters.DebtsAdapter;
 import com.dao.mydebts.dto.DebtCreationRequest;
 import com.dao.mydebts.dto.DebtsRequest;
 import com.dao.mydebts.dto.DebtsResponse;
+import com.dao.mydebts.dto.GenericResponse;
 import com.dao.mydebts.entities.Contact;
 import com.dao.mydebts.entities.Debt;
 import com.dao.mydebts.misc.AbstractNetworkLoader;
@@ -48,11 +50,13 @@ import com.google.android.gms.plus.People;
 import com.google.android.gms.plus.Plus;
 import com.google.android.gms.plus.model.people.Person;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.orm.SugarRecord;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -92,7 +96,9 @@ public class DebtsListActivity extends AppCompatActivity {
 
     // Network-related
     private OkHttpClient mHttpClient = new OkHttpClient();
-    private Gson mJsonSerializer = new Gson();
+    private Gson mJsonSerializer = new GsonBuilder()
+            .setDateFormat("yyyy-MM-dd'T'hh:mm:ssZ") // ISO 8601
+            .create();
     private GoogleApiClient mGoogleApiClient;
 
     // Custom
@@ -256,25 +262,10 @@ public class DebtsListActivity extends AppCompatActivity {
                         DebtsRequest postData = new DebtsRequest();
                         postData.setMe(mCurrentPerson.toActor());
 
-                        Request postQuery = new Request.Builder()
-                                .url(Constants.SERVER_ENDPOINT_DEBTS)
-                                .post(RequestBody.create(Constants.JSON_MIME_TYPE, mJsonSerializer.toJson(postData)))
-                                .build();
-
-                        // send request across the network
-                        Response response = mHttpClient.newCall(postQuery).execute();
-                        if (response.isSuccessful()) {
-                            String result = response.body().string();
-                            try {
-                                DebtsResponse answer = mJsonSerializer.fromJson(result, DebtsResponse.class);
-                                if (answer != null && answer.getMe().getId().equals(mCurrentPerson.getGoogleId())) {
-                                    return answer.getDebts();
-                                }
-                            } catch (JsonSyntaxException ignore) {
-                            }
+                        DebtsResponse dr = postServerRoundtrip(Constants.SERVER_ENDPOINT_DEBTS, postData, DebtsResponse.class);
+                        if (dr != null && dr.getMe().getId().equals(mCurrentPerson.getGoogleId())) {
+                            return dr.getDebts();
                         }
-                    } catch (IOException e) {
-                        Log.e(DLA_TAG, "Couldn't request a debts list", e);
                     } catch (JsonSyntaxException e) {
                         Log.e(DLA_TAG, "Answer could not be deserialized to correct response class", e);
                     }
@@ -289,15 +280,7 @@ public class DebtsListActivity extends AppCompatActivity {
             mDebts.clear();
             mDebts.addAll(results);
 
-            Debt debt = new Debt();
-            debt.setSrc(DebtsListActivity.this.mCurrentPerson.toActor());
-            debt.setDest(DebtsListActivity.this.mContacts.get("114782373662009354334").toActor());
-            debt.setAmount(new BigDecimal("123123.21"));
-            debt.setCreated(new Date());
-            ((ArrayList) mDebts).add(debt);
-
             mDebtList.getAdapter().notifyDataSetChanged();
-//            mDebtList.setAdapter(new DebtsAdapter(DebtsListActivity.this, mDebts, mContacts));
         }
 
         @Override
@@ -386,7 +369,6 @@ public class DebtsListActivity extends AppCompatActivity {
                     mDebtPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, mBackgroundHandler, forAdapter));
                     return true;
                 case MSG_DEBT_CREATED:
-                    //getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();
                     mDebts.add(0, (Debt) msg.obj);
                     mDebtList.getAdapter().notifyItemInserted(0);
 
@@ -415,15 +397,45 @@ public class DebtsListActivity extends AppCompatActivity {
                     DebtCreationRequest dcr = new DebtCreationRequest();
                     dcr.setCreated(toCreate);
 
-                    // TODO: now send it to the server and comment this out
-                    Message toUi = Message.obtain(msg);
-                    toUi.what = MSG_DEBT_CREATED;
-                    mUiHandler.sendMessage(toUi);
-                    return true;
+                    GenericResponse gr = postServerRoundtrip(Constants.SERVER_ENDPOINT_CREATE, dcr, GenericResponse.class);
+                    if(gr != null && TextUtils.isDigitsOnly(gr.getResult())) {
+                        toCreate.setId(gr.getResult());
+                        Message toUi = Message.obtain(msg);
+                        toUi.what = MSG_DEBT_CREATED;
+                        mUiHandler.sendMessage(toUi);
+                        return true;
+                    }
             }
 
             return false;
         }
+    }
+
+    @Nullable
+    private <REQ, RESP> RESP postServerRoundtrip(String endpoint, REQ request, Class<RESP> respClass) {
+        Request postQuery = new Request.Builder()
+                .url(endpoint)
+                .post(RequestBody.create(Constants.JSON_MIME_TYPE, mJsonSerializer.toJson(request)))
+                .build();
+
+        // send request across the network
+        try {
+            Response answer = mHttpClient.newCall(postQuery).execute();
+            if (answer.isSuccessful()) {
+                return mJsonSerializer.fromJson(answer.body().string(), respClass);
+            }
+        } catch (IOException e) {
+            Log.e(DLA_TAG, "Server sync failed, object: " + request, e);
+        }
+
+        // if we fall this far then something is wrong
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), R.string.server_sync_failed, Toast.LENGTH_SHORT).show();
+            }
+        });
+        return null;
     }
 
     private class FabClickListener implements OnClickListener {

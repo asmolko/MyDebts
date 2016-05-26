@@ -44,13 +44,9 @@
         android:layout_height="match_parent"
         android:layout_margin="40dp"
         custom:layout_anchorGravity="top|left"
-        android:visibility="visible">
+        android:visibility="invisible">
 
         <LinearLayout
-            xmlns:android="http://schemas.android.com/apk/res/android"
-            xmlns:tools="http://schemas.android.com/tools"
-            tools:ignore="PrivateResource"
-            android:visibility="invisible"
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
