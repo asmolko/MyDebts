@@ -13,6 +13,7 @@ public class Constants {
 
     public static final String SERVER_ENDPOINT_DEBTS = SERVER_ENDPOINT + "debts";
     public static final String SERVER_ENDPOINT_CREATE = SERVER_ENDPOINT + "createDebt";
+    public static final String SERVER_ENDPOINT_APPROVE = SERVER_ENDPOINT + "approve";
 
     public static final MediaType JSON_MIME_TYPE = MediaType.parse("application/json");
 

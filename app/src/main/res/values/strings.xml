@@ -11,4 +11,8 @@
     <string name="how_bad_is_it">Насколько всё плохо?</string>
     <string name="unknown_person">Неизвестно (нет в кругах)</string>
     <string name="server_sync_failed">Невозможно синхронизировать объект</string>
+    <string name="refresh">Обновить</string>
+    <string name="not_approved">Не подтверждено</string>
+    <string name="approved">Подтверждено</string>
+    <string name="you">Вы</string>
 </resources>

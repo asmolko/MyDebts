@@ -8,6 +8,7 @@ package com.dao.mydebts.dto;
 public class GenericResponse {
 
     private String result;
+    private String newId;
 
     public String getResult() {
         return result;
@@ -15,5 +16,13 @@ public class GenericResponse {
 
     public void setResult(String result) {
         this.result = result;
+    }
+
+    public String getNewId() {
+        return newId;
+    }
+
+    public void setNewId(String newId) {
+        this.newId = newId;
     }
 }

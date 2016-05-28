@@ -1,9 +1,10 @@
 package com.dao.mydebts.adapters;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.RecyclerView.Adapter;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,6 +14,8 @@ import android.widget.TextView;
 
 import com.dao.mydebts.DebtsListActivity;
 import com.dao.mydebts.R;
+import com.dao.mydebts.dto.DebtApprovalRequest;
+import com.dao.mydebts.entities.Actor;
 import com.dao.mydebts.entities.Contact;
 import com.dao.mydebts.entities.Debt;
 import com.dao.mydebts.misc.AccountHolder;
@@ -35,7 +38,6 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
     private final List<Debt> mDebts;
     private final Map<String, Contact> mContactsCache;
     private final Context mContext;
-    private final DebtsListActivity.DebtClickListener debtClickListener;
 
     /**
      * Constructs new Debts Adapter.
@@ -46,11 +48,10 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
      * @param debts debts to construct adapter from
      * @param contactsCache contacts to populate contact fields from
      */
-    public DebtsAdapter(Context context, List<Debt> debts, Map<String, Contact> contactsCache, DebtsListActivity.DebtClickListener debtClickListener) {
+    public DebtsAdapter(Context context, List<Debt> debts, Map<String, Contact> contactsCache) {
         this.mDebts = Collections.unmodifiableList(debts);
         this.mContactsCache = Collections.unmodifiableMap(contactsCache);
         this.mContext = context;
-        this.debtClickListener = debtClickListener;
     }
 
     @Override
@@ -64,42 +65,13 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
     @SuppressWarnings("deprecation") // getColor(int, Theme) for API23 only
     @Override
     public void onBindViewHolder(DebtsAdapter.AccViewHolder holder, int position) {
-        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault());
         Debt requested = mDebts.get(position);
-
-        holder.date.setText(sdf.format(requested.getCreated().getTime()));
-        Contact cached = null;
-
-        // we're in debt
-        if (TextUtils.equals(requested.getSrc().getId(), AccountHolder.getSavedGoogleId(mContext))) {
-            holder.amount.setText(String.format(Locale.getDefault(), "-%s", requested.getAmount().toPlainString()));
-            holder.amount.setTextColor(mContext.getResources().getColor(android.R.color.holo_red_dark));
-            cached = mContactsCache.get(requested.getDest().getId());
-        }
-
-        // someone is in debt with us
-        if (TextUtils.equals(requested.getDest().getId(), AccountHolder.getSavedGoogleId(mContext))) {
-            holder.amount.setText(String.format(Locale.getDefault(), "+%s", requested.getAmount().toPlainString()));
-            holder.amount.setTextColor(mContext.getResources().getColor(android.R.color.holo_green_dark));
-            cached = mContactsCache.get(requested.getDest().getId());
-        }
-
-        if(cached == null) { // you have no such person in your Plus Circles
-            holder.name.setText(R.string.unknown_person);
-            holder.badge.setImageDrawable(null);
-            return;
-        }
-
-        holder.name.setText(cached.getDisplayName());
-        holder.badge.setImageDrawable(ImageCache.getInstance(mContext).get(cached.getImageUrl()));
+        holder.bind(requested);
     }
 
     @Override
     public void onViewRecycled(AccViewHolder holder) {
-        holder.date.setText("");
-        holder.amount.setText("");
-        holder.name.setText("");
-        holder.badge.setImageDrawable(null);
+        holder.clear();
     }
 
     @Override
@@ -108,19 +80,120 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
     }
 
     class AccViewHolder extends RecyclerView.ViewHolder {
-        private final ImageView badge;
-        private final TextView name;
-        private final TextView date;
+        private final ImageView srcBadge;
+        private final TextView srcName;
+        private final TextView srcApproval;
+        private final ImageView destBadge;
+        private final TextView destName;
+        private final TextView destApproval;
         private final TextView amount;
+        private final TextView date;
+
+        private Debt item;
 
         public AccViewHolder(View view) {
             super(view);
-            CardView main = (CardView) view.findViewById(R.id.debt_item_root); // TODO: add click events
-            main.setOnClickListener(debtClickListener);
-            badge = (ImageView) main.findViewById(R.id.debt_item_contact_img);
-            name = (TextView) main.findViewById(R.id.debt_item_contact_name);
+            view.setTag(this);
+            CardView main = (CardView) view.findViewById(R.id.debt_item_root);
+            view.setOnClickListener(new DebtApproveListener());
+
+            srcBadge = (ImageView) main.findViewById(R.id.debt_item_src_img);
+            srcName = (TextView) main.findViewById(R.id.debt_item_src_name);
+            srcApproval = (TextView) main.findViewById(R.id.debt_item_src_approval_status);
+            destBadge = (ImageView) main.findViewById(R.id.debt_item_dest_img);
+            destName = (TextView) main.findViewById(R.id.debt_item_dest_name);
+            destApproval = (TextView) main.findViewById(R.id.debt_item_dest_approval_status);
             date = (TextView) view.findViewById(R.id.debt_item_date);
             amount = (TextView) view.findViewById(R.id.debt_item_amount);
+        }
+
+        public void bind(Debt item) {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault());
+            this.item = item;
+
+            String me = AccountHolder.getSavedGoogleId(mContext);
+            Contact src = mContactsCache.get(item.getSrc().getId());
+            Contact dest = mContactsCache.get(item.getDest().getId());
+
+            // common
+            date.setText(sdf.format(item.getCreated().getTime()));
+            srcApproval.setText(item.isApprovedBySrc()
+                    ? R.string.approved
+                    : R.string.not_approved);
+            srcApproval.setTextColor(item.isApprovedBySrc()
+                    ? mContext.getResources().getColor(R.color.approved_debt)
+                    : mContext.getResources().getColor(R.color.not_approved_debt));
+            destApproval.setText(item.isApprovedByDest()
+                    ? R.string.approved
+                    : R.string.not_approved);
+            destApproval.setTextColor(item.isApprovedByDest()
+                    ? mContext.getResources().getColor(R.color.approved_debt)
+                    : mContext.getResources().getColor(R.color.not_approved_debt));
+
+            if (src != null) {
+                ImageCache.getInstance(mContext).loadImage(src.getImageUrl(), srcBadge);
+                srcName.setText(src.getDisplayName());
+            } else {
+                srcBadge.setImageDrawable(null);
+                srcName.setText(R.string.unknown_person);
+            }
+            if (dest != null) {
+                ImageCache.getInstance(mContext).loadImage(dest.getImageUrl(), destBadge);
+                destName.setText(dest.getDisplayName());
+            } else {
+                destBadge.setImageDrawable(null);
+                destName.setText(R.string.unknown_person);
+            }
+
+            // specific: we're in debt
+            if (TextUtils.equals(item.getSrc().getId(), me)) {
+                srcName.setText(R.string.you);
+                amount.setText(String.format(Locale.getDefault(), "-%s", item.getAmount().toPlainString()));
+                amount.setTextColor(mContext.getResources().getColor(android.R.color.holo_red_dark));
+            }
+
+            // specific: someone is in debt with us
+            if (TextUtils.equals(item.getDest().getId(), me)) {
+                destName.setText(R.string.you);
+                amount.setText(String.format(Locale.getDefault(), "+%s", item.getAmount().toPlainString()));
+                amount.setTextColor(mContext.getResources().getColor(android.R.color.holo_green_dark));
+            }
+        }
+
+        public void clear() {
+            date.setText("");
+            amount.setText("");
+            srcName.setText("");
+            srcApproval.setText("");
+            srcBadge.setImageDrawable(null);
+            destName.setText("");
+            destApproval.setText("");
+            destBadge.setImageDrawable(null);
+        }
+    }
+
+    private class DebtApproveListener implements View.OnClickListener {
+
+        @Override
+        public void onClick(View v) {
+            AccViewHolder holder = (AccViewHolder) v.getTag();
+            String me = AccountHolder.getSavedGoogleId(mContext);
+            Debt toApprove = holder.item;
+
+            // sanity checks
+            if (TextUtils.equals(toApprove.getDest().getId(), me) && toApprove.isApprovedByDest()) {
+                return;
+            }
+
+            if (TextUtils.equals(toApprove.getSrc().getId(), me) && toApprove.isApprovedBySrc()) {
+                return;
+            }
+
+            // send back to activity
+            DebtsListActivity casted = (DebtsListActivity) mContext;
+            Handler bHandler = casted.getBackgroundHandler();
+            Message msg = Message.obtain(bHandler, DebtsListActivity.MSG_APPROVE_DEBT, toApprove);
+            bHandler.sendMessage(msg);
         }
     }
 }

@@ -1,4 +1,4 @@
-package mydebts;
+package com.dao.mydebts;
 
 import com.dao.mydebts.dto.DebtsRequest;
 import com.dao.mydebts.entities.Actor;
