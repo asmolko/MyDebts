@@ -7,6 +7,8 @@ import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 
 /**
+ * Repository for managing {@link StoredDebt}s
+ *
  * @author Oleg Chernovskiy
  */
 @Repository

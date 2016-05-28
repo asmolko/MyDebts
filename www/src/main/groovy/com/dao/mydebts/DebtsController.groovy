@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
+ * Main debt system rest controller. Manages creation/approval of debts.
+ * Also serves as thin DAO layer as persist logic is fairly simple for now.
+ *
  * @author Oleg Chernovskiy
  */
 @RestController

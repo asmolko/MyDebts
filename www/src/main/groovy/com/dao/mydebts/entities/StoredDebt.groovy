@@ -2,7 +2,6 @@ package com.dao.mydebts.entities
 
 import groovy.transform.Canonical
 
-import javax.persistence.CascadeType
 import javax.persistence.Column
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
@@ -11,6 +10,9 @@ import javax.persistence.Id
 import javax.persistence.ManyToOne
 
 /**
+ * Main entity class for server workflow. This is created in mobile clients
+ * and passed via DTOs to be persisted on server.
+ *
  * @author Oleg Chernovskiy
  */
 @Entity
@@ -21,9 +23,13 @@ class StoredDebt {
     @GeneratedValue(strategy = GenerationType.AUTO)
     String id
 
+    // can't use cascade here (the case when new debt is created for existing actor)
+    // persist in DAO layer prior to debt instance
     @ManyToOne(optional = false)
     StoredActor src
 
+    // can't use cascade here (the case when new debt is created for existing actor)
+    // persist in DAO layer prior to debt instance
     @ManyToOne(optional = false)
     StoredActor dest
 

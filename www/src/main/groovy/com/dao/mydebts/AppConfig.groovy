@@ -7,11 +7,18 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.http.converter.json.GsonHttpMessageConverter
 
 /**
+ * Application-wide config
+ *
  * @author Oleg Chernovskiy
  */
 @Configuration
 class AppConfig {
 
+    /**
+     * Overrides default gson message converter with alternate one. Don't change this method's
+     * name as it masks Spring Boot's auto-configured bean.
+     * @return custom gson message converter
+     */
     @Bean
     @Qualifier("for-gson")
     GsonHttpMessageConverter gsonHttpMessageConverter() {
