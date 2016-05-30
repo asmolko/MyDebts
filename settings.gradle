@@ -1,3 +1,7 @@
 include ':app'
 include ':dto'
-include ':srv'
+include ':www'
+
+project(':www').name = 'mydebts-server'
+project(':dto').name = 'mydebts-dto'
+project(':app').name = 'mydebts-android-app'

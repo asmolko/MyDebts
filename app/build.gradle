@@ -39,7 +39,7 @@ android {
 
 dependencies {
     // internal dependencies
-    compile project(':dto')
+    compile project(':mydebts-dto')
     // google-specific
     compile 'com.android.support:appcompat-v7:23.3.0'
     compile 'com.android.support:cardview-v7:23.3.0'

@@ -8,11 +8,14 @@ import okhttp3.MediaType;
 public class Constants {
 
     //private static final String SERVER_ENDPOINT = "sorseg.ru:8080/debt/";
-    private static final String SERVER_ENDPOINT = "http://demoth.no-ip.org:8080/debt/";
+    //private static final String SERVER_ENDPOINT = "http://demoth.no-ip.org:8080/debt/";
+    private static final String SERVER_ENDPOINT = "http://sorseg.ru:1337/debt/";
 
     public static final String SERVER_ENDPOINT_DEBTS = SERVER_ENDPOINT + "debts";
+    public static final String SERVER_ENDPOINT_CREATE = SERVER_ENDPOINT + "createDebt";
+    public static final String SERVER_ENDPOINT_APPROVE = SERVER_ENDPOINT + "approve";
 
-    public static final MediaType JSON_MIME_TYPE = MediaType.parse("text/json");
+    public static final MediaType JSON_MIME_TYPE = MediaType.parse("application/json");
 
     public static final int DEBT_REQUEST_LOADER = 0;
 

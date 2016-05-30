@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string translatable="false" name="image_cache_name">image_cache_name</string>
+    <string translatable="false" name="placeholder_text">Lorem Ipsum</string>
+    <string translatable="false" name="placeholder_number">100500</string>
+</resources>

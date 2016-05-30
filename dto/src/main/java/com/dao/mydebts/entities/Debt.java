@@ -1,9 +1,6 @@
 package com.dao.mydebts.entities;
 
-import com.google.gson.annotations.JsonAdapter;
-
 import java.math.BigDecimal;
-import java.util.Calendar;
 import java.util.Date;
 
 /**

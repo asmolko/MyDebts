@@ -17,59 +17,107 @@
         android:padding="10dp">
 
         <ImageView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_margin="5dp"
             android:layout_alignParentTop="true"
             android:layout_alignParentStart="true"
             android:scaleType="centerCrop"
-            android:id="@+id/debt_item_contact_img"/>
-
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:id="@+id/debt_item_popup_menu"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentEnd="true"
-            android:src="@drawable/abc_ic_menu_moreoverflow_mtrl_alpha"
-            android:tint="@android:color/darker_gray"
-            android:contentDescription="@string/popup_menu"/>
+            android:id="@+id/debt_item_src_img"
+            android:contentDescription="@string/avatar"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:layout_alignTop="@+id/debt_item_src_img"
+            android:layout_toEndOf="@+id/debt_item_src_img"
+            android:layout_toStartOf="@+id/debt_item_popup_menu"
+            android:layout_marginStart="5dp"
+            android:textAppearance="?android:attr/textAppearanceSmall"
             android:text="@string/placeholder_text"
-            android:id="@+id/debt_item_contact_name"
-            android:layout_alignParentTop="true"
-            android:layout_toEndOf="@+id/debt_item_contact_img"
-            android:layout_toStartOf="@id/debt_item_popup_menu"
+            android:id="@+id/debt_item_src_name"
+            android:maxEms="15" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="8sp"
+            android:layout_toEndOf="@+id/debt_item_src_img"
+            android:layout_below="@+id/debt_item_src_name"
+            android:layout_marginTop="5dp"
+            android:layout_marginStart="5dp"
+            android:text="@string/not_approved"
+            android:textColor="@color/not_approved_debt"
+            android:id="@+id/debt_item_src_approval_status"
+            android:maxEms="15" />
+
+        <ImageView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_margin="5dp"
+            android:layout_below="@+id/debt_item_src_approval_status"
+            android:layout_alignParentStart="true"
+            android:scaleType="centerCrop"
+            android:id="@+id/debt_item_dest_img"
+            android:contentDescription="@string/avatar"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@+id/debt_item_dest_img"
+            android:layout_toEndOf="@+id/debt_item_dest_img"
+            android:layout_toStartOf="@+id/debt_item_popup_menu"
+            android:layout_marginStart="5dp"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="@string/placeholder_text"
+            android:id="@+id/debt_item_dest_name"
+            android:maxEms="15" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@+id/debt_item_dest_img"
+            android:layout_below="@+id/debt_item_dest_name"
+            android:layout_marginTop="5dp"
+            android:layout_marginStart="5dp"
+            android:textSize="8sp"
+            android:text="@string/not_approved"
+            android:textColor="@color/not_approved_debt"
+            android:id="@+id/debt_item_dest_approval_status"
             android:maxEms="15" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_below="@+id/debt_item_dest_approval_status"
+            android:layout_toStartOf="@+id/debt_item_amount"
+            android:layout_marginTop="10dp"
             android:textAppearance="?android:attr/textAppearanceSmall"
             android:text="@string/placeholder_date"
             android:id="@+id/debt_item_date"
-            android:layout_below="@+id/debt_item_contact_name"
-            android:layout_toEndOf="@+id/debt_item_contact_img"
-            android:layout_marginTop="5dp"
-            android:layout_toStartOf="@id/debt_item_popup_menu"
             android:maxEms="15" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_below="@+id/debt_item_dest_approval_status"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="10dp"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:textColor="@android:color/holo_red_dark"
             android:textStyle="bold"
             android:text="@string/placeholder_number"
             android:id="@+id/debt_item_amount"
-            android:layout_below="@+id/debt_item_date"
-            android:layout_alignParentEnd="true"
-            android:layout_marginTop="5dp"
             android:maxEms="15" />
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:id="@+id/debt_item_popup_menu"
+            android:src="@drawable/abc_ic_menu_moreoverflow_mtrl_alpha"
+            android:tint="@android:color/darker_gray"
+            android:contentDescription="@string/popup_menu"/>
 
     </RelativeLayout>
 

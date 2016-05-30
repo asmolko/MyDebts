@@ -52,9 +52,6 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
     private static final String AA_TAG = AccountsAdapter.class.getSimpleName();
 
     private final List<Contact> mContacts;
-    private final Handler mObserver;
-
-    private final ContactImageRetriever mImageLoader = new ContactImageRetriever();
     private final Context mContext;
 
     /**
@@ -62,12 +59,10 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
      * The adapter itself cannot modify arguments provided to it.
      *
      * @param context the Context
-     * @param handler handler to send back notifications about click events
-     * @param contacts contacts list to bould adapter items from
+     * @param contacts contacts list to build adapter items from
      */
-    public AccountsAdapter(Context context, Handler handler, List<Contact> contacts) {
+    public AccountsAdapter(Context context, List<Contact> contacts) {
         this.mContacts = Collections.unmodifiableList(contacts);
-        this.mObserver = handler;
         this.mContext = context;
     }
 
@@ -84,7 +79,7 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
         Contact it = mContacts.get(position);
         holder.name.setText(it.getDisplayName());
         if(!TextUtils.isEmpty(it.getImageUrl())) {
-            mImageLoader.loadImage(it.getImageUrl(), new BadgeCallback(holder.badge));
+            ImageCache.getInstance(mContext).loadImage(it.getImageUrl(), holder.badge);
         }
     }
 
@@ -128,7 +123,7 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
                             public void onClick(DialogInterface dialog, int which) {
 
                                 String amount = input.getText().toString();
-                                if(amount.isEmpty()) {
+                                if (amount.isEmpty()) {
                                     return;
                                 }
 
@@ -138,100 +133,16 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
                                 toCreate.setAmount(new BigDecimal(amount));
 
                                 // send back to activity
-                                Message msg = Message.obtain(mObserver, DebtsListActivity.MSG_CREATE_DEBT, toCreate);
-                                mObserver.sendMessage(msg);
+                                DebtsListActivity casted = (DebtsListActivity) mContext;
+                                Handler bHandler = casted.getBackgroundHandler();
+                                Message msg = Message.obtain(bHandler, DebtsListActivity.MSG_CREATE_DEBT, toCreate);
+                                bHandler.sendMessage(msg);
                             }
                         })
                         .setNegativeButton(android.R.string.cancel, null)
                         .create().show();
 
             }
-        }
-    }
-
-    /**
-     * Async loader for person images.
-     * Supports caching for better performance.
-     */
-    private class ContactImageRetriever {
-
-        private final OkHttpClient client = new OkHttpClient();
-
-        public ContactImageRetriever() {
-            client.dispatcher().setMaxRequests(5);
-        }
-
-        /**
-         * This method is called from UI thread, however, its purpose is to offload
-         * image retrieval to worker thread (if it's not available in cache).
-         * @param url valid URL of image to load
-         * @param callback callback to execute after retrieval (executes in worker thread!)
-         */
-        private void loadImage(String url, BadgeCallback callback) {
-            Drawable cached = ImageCache.getInstance(mContext).get(url);
-            if(cached != null) {
-                callback.setRetrieved(cached);
-                callback.run();
-            } else {
-                Request req = new Request.Builder().url(url).build();
-                client.newCall(req).enqueue(callback);
-            }
-        }
-
-    }
-
-    /**
-     * Note: Callbacks are executed in thread pool too.
-     *
-     * @author Oleg Chernovskiy
-     */
-    private class BadgeCallback implements Callback, Runnable {
-
-        private final ImageView mCaller;
-        private Drawable retrieved;
-
-        public BadgeCallback(ImageView mCaller) {
-            this.mCaller = mCaller;
-        }
-
-        public void setRetrieved(Drawable retrieved) {
-            this.retrieved = retrieved;
-        }
-
-        @Override
-        public void onFailure(Call call, IOException e) {
-            Log.w(AA_TAG, "Couldn't retrieve contact avatar", e);
-        }
-
-        @Override
-        public void onResponse(Call call, Response response) throws IOException {
-            if (!response.isSuccessful()) {
-                return;
-            }
-
-            try(ResponseBody body = response.body()) {
-                Bitmap loaded = BitmapFactory.decodeStream(body.byteStream());
-                if (loaded == null) { // decode failed
-                    return;
-                }
-
-                Bitmap scaled = Bitmap.createScaledBitmap(loaded, mCaller.getWidth(), mCaller.getHeight(), false);
-                RoundedBitmapDrawable rbd = RoundedBitmapDrawableFactory.create(mCaller.getContext().getResources(), scaled);
-                rbd.setCornerRadius(Math.max(scaled.getWidth(), scaled.getHeight()) / 2.0f);
-                setRetrieved(rbd);
-
-                ImageCache.getInstance(null).put(call.request().url().toString(), rbd);
-                mCaller.post(this);
-            }
-        }
-
-        /**
-         * This is to be called on UI thread once finished
-         * @see #onResponse(Call, Response)
-         */
-        @Override
-        public void run() {
-            mCaller.setImageDrawable(retrieved);
         }
     }
 }

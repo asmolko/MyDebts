@@ -5,11 +5,14 @@ import android.animation.Animator;
 import android.app.LoaderManager;
 import android.content.Intent;
 import android.content.Loader;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
@@ -21,16 +24,20 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewAnimationUtils;
-import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.dao.mydebts.adapters.AccountsAdapter;
 import com.dao.mydebts.adapters.DebtsAdapter;
+import com.dao.mydebts.dto.DebtApprovalRequest;
 import com.dao.mydebts.dto.DebtCreationRequest;
 import com.dao.mydebts.dto.DebtsRequest;
 import com.dao.mydebts.dto.DebtsResponse;
+import com.dao.mydebts.dto.GenericResponse;
 import com.dao.mydebts.entities.Contact;
 import com.dao.mydebts.entities.Debt;
 import com.dao.mydebts.misc.AbstractNetworkLoader;
@@ -43,6 +50,7 @@ import com.google.android.gms.plus.People;
 import com.google.android.gms.plus.Plus;
 import com.google.android.gms.plus.model.people.Person;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.orm.SugarRecord;
 
@@ -50,7 +58,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
@@ -68,10 +75,12 @@ public class DebtsListActivity extends AppCompatActivity {
 
     private static final int SIGN_IN_RETURN_CODE = 1050;
 
-    public static final int MSG_CIRCLES_LOADED = 0;
-    public static final int MSG_DEBTS_LOADED   = 1;
-    public static final int MSG_CREATE_DEBT    = 2;
-    public static final int MSG_DEBT_CREATED   = 3;
+    public static final int MSG_CIRCLES_LOADED   = 0;
+    public static final int MSG_DEBTS_LOADED     = 1;
+    public static final int MSG_CREATE_DEBT      = 2;
+    public static final int MSG_DEBT_CREATED     = 3;
+    public static final int MSG_APPROVE_DEBT     = 4;
+    public static final int MSG_DEBT_APPROVED    = 5;
 
     // GUI-related
     private RecyclerView mDebtList;
@@ -79,12 +88,13 @@ public class DebtsListActivity extends AppCompatActivity {
     private FloatingActionButton mFloatingButton;
 
     private CardView mDebtAddForm;
-    private EditText mDebtAddPersonName;
     private RecyclerView mDebtPersonList;
 
     // Network-related
     private OkHttpClient mHttpClient = new OkHttpClient();
-    private Gson mJsonSerializer = new Gson();
+    private Gson mJsonSerializer = new GsonBuilder()
+            .setDateFormat("yyyy-MM-dd'T'hh:mm:ssZ") // ISO 8601
+            .create();
     private GoogleApiClient mGoogleApiClient;
 
     // Custom
@@ -106,6 +116,7 @@ public class DebtsListActivity extends AppCompatActivity {
     private Handler mUiHandler;
     /**
      * Runs on background thread
+     *
      * @see #onCreate(Bundle)
      */
     private Handler mBackgroundHandler;
@@ -113,11 +124,12 @@ public class DebtsListActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_groups_list);
+        setContentView(R.layout.activity_debt_list);
 
         mDebtList = (RecyclerView) findViewById(R.id.list);
         mDebtList.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
-        mDebtList.setAdapter(new DebtsAdapter(this, mDebts, mContacts));
+        DebtsAdapter adapter = new DebtsAdapter(this, mDebts, mContacts);
+        mDebtList.setAdapter(adapter);
 
         mProgress = (ProgressBar) findViewById(R.id.loader);
         mFloatingButton = (FloatingActionButton) findViewById(R.id.floating_add_button);
@@ -125,7 +137,6 @@ public class DebtsListActivity extends AppCompatActivity {
         mFloatingButton.hide();
 
         mDebtAddForm = (CardView) findViewById(R.id.debt_create_form);
-        mDebtAddPersonName = (EditText) findViewById(R.id.debt_create_search_edit);
         mDebtPersonList = (RecyclerView) findViewById(R.id.debt_create_contact_list);
         mDebtPersonList.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
 
@@ -143,13 +154,13 @@ public class DebtsListActivity extends AppCompatActivity {
             while (itr.hasNext()) {
                 Contact c = itr.next();
                 mContacts.put(c.getGoogleId(), c);
-                if(c.getGoogleId().equals(ourGoogleId)) {
+                if (c.getGoogleId().equals(ourGoogleId)) {
                     mCurrentPerson = c;
                     itr.remove();
                 }
             }
 
-            mDebtPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, mBackgroundHandler, forAdapter));
+            mDebtPersonList.setAdapter(new AccountsAdapter(this, forAdapter));
             mProgress.animate().alpha(0.0f).setDuration(0).start();
             supportInvalidateOptionsMenu();
             mFloatingButton.show();
@@ -210,7 +221,7 @@ public class DebtsListActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_groups_list, menu);
+        getMenuInflater().inflate(R.menu.menu_debt_list, menu);
         return true;
     }
 
@@ -218,10 +229,17 @@ public class DebtsListActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         switch (id) {
-            case  R.id.action_settings:
-            return true;
+            case R.id.action_refresh_debts:
+                getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();
+                return true;
+            case R.id.action_settings:
+                return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    public Handler getBackgroundHandler() {
+        return mBackgroundHandler;
     }
 
     private class LoadDebtsCallback implements LoaderManager.LoaderCallbacks<List<Debt>> {
@@ -231,7 +249,7 @@ public class DebtsListActivity extends AppCompatActivity {
 
                 @Override
                 protected void onStartLoading() {
-                    if(mCurrentPerson != null) {
+                    if (mCurrentPerson != null) {
                         super.onStartLoading();
                     }
                 }
@@ -244,25 +262,10 @@ public class DebtsListActivity extends AppCompatActivity {
                         DebtsRequest postData = new DebtsRequest();
                         postData.setMe(mCurrentPerson.toActor());
 
-                        Request postQuery = new Request.Builder()
-                                .url(Constants.SERVER_ENDPOINT_DEBTS)
-                                .post(RequestBody.create(Constants.JSON_MIME_TYPE, mJsonSerializer.toJson(postData)))
-                                .build();
-
-                        // send request across the network
-                        Response response = mHttpClient.newCall(postQuery).execute();
-                        if (response.isSuccessful()) {
-                            String result = response.body().string();
-                            try {
-                                DebtsResponse answer = mJsonSerializer.fromJson(result, DebtsResponse.class);
-                                if (answer != null && answer.getMe().getId().equals(mCurrentPerson.getGoogleId())) {
-                                    return answer.getDebts();
-                                }
-                            } catch (JsonSyntaxException ignore) {
-                            }
+                        DebtsResponse dr = postServerRoundtrip(Constants.SERVER_ENDPOINT_DEBTS, postData, DebtsResponse.class);
+                        if (dr != null && dr.getMe().getId().equals(mCurrentPerson.getGoogleId())) {
+                            return dr.getDebts();
                         }
-                    } catch (IOException e) {
-                        Log.e(DLA_TAG, "Couldn't request a debts list", e);
                     } catch (JsonSyntaxException e) {
                         Log.e(DLA_TAG, "Answer could not be deserialized to correct response class", e);
                     }
@@ -274,7 +277,10 @@ public class DebtsListActivity extends AppCompatActivity {
 
         @Override
         public void onLoadFinished(Loader<List<Debt>> objectLoader, @NonNull List<Debt> results) {
-            mDebtList.setAdapter(new DebtsAdapter(DebtsListActivity.this, mDebts, mContacts));
+            mDebts.clear();
+            mDebts.addAll(results);
+
+            mDebtList.getAdapter().notifyDataSetChanged();
         }
 
         @Override
@@ -288,8 +294,7 @@ public class DebtsListActivity extends AppCompatActivity {
      */
     private class PlusApiAsyncListener implements GoogleApiClient.ConnectionCallbacks,
             ResultCallback<People.LoadPeopleResult>,
-            GoogleApiClient.OnConnectionFailedListener
-    {
+            GoogleApiClient.OnConnectionFailedListener {
         @Override
         public void onConnected(Bundle bundle) {
             // Docs suggest to use SignIn API for this, but we can't, as we use Plus
@@ -361,10 +366,9 @@ public class DebtsListActivity extends AppCompatActivity {
                     SugarRecord.saveInTx(forAdapter); // save our circles
                     SugarRecord.save(mCurrentPerson); // save us
 
-                    mDebtPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, mBackgroundHandler, forAdapter));
+                    mDebtPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, forAdapter));
                     return true;
                 case MSG_DEBT_CREATED:
-                    //getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();
                     mDebts.add(0, (Debt) msg.obj);
                     mDebtList.getAdapter().notifyItemInserted(0);
 
@@ -385,7 +389,7 @@ public class DebtsListActivity extends AppCompatActivity {
         @Override
         public boolean handleMessage(Message msg) {
             switch (msg.what) {
-                case MSG_CREATE_DEBT:
+                case MSG_CREATE_DEBT: {
                     Debt toCreate = (Debt) msg.obj;
                     toCreate.setSrc(mCurrentPerson.toActor());
 
@@ -393,24 +397,72 @@ public class DebtsListActivity extends AppCompatActivity {
                     DebtCreationRequest dcr = new DebtCreationRequest();
                     dcr.setCreated(toCreate);
 
-                    // TODO: now send it to the server and comment this out
-                    Message toUi = Message.obtain(msg);
-                    toUi.what = MSG_DEBT_CREATED;
-                    mUiHandler.sendMessage(toUi);
-                    return true;
+                    GenericResponse gr = postServerRoundtrip(Constants.SERVER_ENDPOINT_CREATE, dcr, GenericResponse.class);
+                    if (gr != null && TextUtils.equals(gr.getResult(), "created")) {
+                        toCreate.setId(gr.getNewId());
+                        Message toUi = Message.obtain(msg);
+                        toUi.what = MSG_DEBT_CREATED;
+                        mUiHandler.sendMessage(toUi);
+                        return true;
+                    }
+                    return false;
+                }
+                case MSG_APPROVE_DEBT: {
+                    Debt toApprove = (Debt) msg.obj;
+
+                    // enclose in request
+                    DebtApprovalRequest dar = new DebtApprovalRequest();
+                    dar.setDebtIdToApprove(toApprove.getId());
+                    dar.setMe(mCurrentPerson.toActor());
+
+                    GenericResponse gr = postServerRoundtrip(Constants.SERVER_ENDPOINT_APPROVE, dar, GenericResponse.class);
+                    if (gr != null && TextUtils.equals(gr.getResult(), "approved")) {
+                        toApprove.setApprovedByDest(true);
+                        getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();
+                        return true;
+                    }
+                    return false;
+                }
             }
 
             return false;
         }
     }
 
-    private class FabClickListener implements View.OnClickListener {
+    @Nullable
+    private <REQ, RESP> RESP postServerRoundtrip(String endpoint, REQ request, Class<RESP> respClass) {
+        Request postQuery = new Request.Builder()
+                .url(endpoint)
+                .post(RequestBody.create(Constants.JSON_MIME_TYPE, mJsonSerializer.toJson(request)))
+                .build();
+
+        // send request across the network
+        try {
+            Response answer = mHttpClient.newCall(postQuery).execute();
+            if (answer.isSuccessful()) {
+                return mJsonSerializer.fromJson(answer.body().string(), respClass);
+            }
+        } catch (IOException e) {
+            Log.e(DLA_TAG, "Server sync failed, object: " + request, e);
+        }
+
+        // if we fall this far then something is wrong
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), R.string.server_sync_failed, Toast.LENGTH_SHORT).show();
+            }
+        });
+        return null;
+    }
+
+    private class FabClickListener implements OnClickListener {
         @Override
         public void onClick(View v) {
-            if(mDebtAddForm.getVisibility() == View.INVISIBLE) {
+            if (mDebtAddForm.getVisibility() == View.INVISIBLE) {
                 mFloatingButton.animate().rotation(45f).setDuration(300).start();
                 mDebtAddForm.setVisibility(View.VISIBLE);
-                Animator cr =  ViewAnimationUtils.createCircularReveal(mDebtAddForm,
+                Animator cr = ViewAnimationUtils.createCircularReveal(mDebtAddForm,
                         mDebtAddForm.getBottom(),
                         mDebtAddForm.getRight(),
                         0,
@@ -419,7 +471,7 @@ public class DebtsListActivity extends AppCompatActivity {
                 cr.start();
             } else {
                 mFloatingButton.animate().rotation(0f).setDuration(300).start();
-                Animator cr =  ViewAnimationUtils.createCircularReveal(mDebtAddForm,
+                Animator cr = ViewAnimationUtils.createCircularReveal(mDebtAddForm,
                         mDebtAddForm.getBottom(),
                         mDebtAddForm.getRight(),
                         Math.max(mDebtAddForm.getWidth(), mDebtAddForm.getHeight()) * 2,
