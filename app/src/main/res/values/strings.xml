@@ -16,4 +16,6 @@
     <string name="approved">Подтверждено</string>
     <string name="you">Вы</string>
     <string name="delete">Удалить</string>
+    <string name="approve_dialog_title">Подтверждение</string>
+    <string name="approve_dialog_message">Подтверждаете долг?</string>
 </resources>
