@@ -39,12 +39,22 @@
     </android.support.v7.widget.CardView>
 
     <android.support.design.widget.FloatingActionButton
-        android:id="@+id/floating_add_button"
+        android:id="@+id/floating_give_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="@dimen/fab_margin"
+        android:layout_marginBottom="@dimen/give_fab_bottom_margin"
+        android:src="@drawable/ic_add_white_48dp" />
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/floating_get_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/fab_margin"
         android:src="@drawable/ic_add_white_48dp" />
+
 
     <include layout="@layout/view_custom_progressbar" />
 

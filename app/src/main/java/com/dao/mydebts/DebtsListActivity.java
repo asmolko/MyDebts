@@ -5,8 +5,6 @@ import android.animation.Animator;
 import android.app.LoaderManager;
 import android.content.Intent;
 import android.content.Loader;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -26,9 +24,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewAnimationUtils;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.dao.mydebts.adapters.AccountsAdapter;
@@ -56,6 +52,7 @@ import com.google.gson.JsonSyntaxException;
 import com.orm.SugarRecord;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -88,7 +85,8 @@ public class DebtsListActivity extends AppCompatActivity {
     // GUI-related
     private RecyclerView mDebtList;
     private ProgressBar mProgress;
-    private FloatingActionButton mFloatingButton;
+    private FloatingActionButton mFloatingGetButton;
+    private FloatingActionButton mFloatingGiveButton;
 
     private CardView mDebtAddForm;
     private RecyclerView mDebtPersonList;
@@ -135,9 +133,13 @@ public class DebtsListActivity extends AppCompatActivity {
         mDebtList.setAdapter(adapter);
 
         mProgress = (ProgressBar) findViewById(R.id.loader);
-        mFloatingButton = (FloatingActionButton) findViewById(R.id.floating_add_button);
-        mFloatingButton.setOnClickListener(new FabClickListener());
-        mFloatingButton.hide();
+        mFloatingGetButton = (FloatingActionButton) findViewById(R.id.floating_get_button);
+        mFloatingGetButton.setOnClickListener(new FabClickListener(true));
+        mFloatingGetButton.hide();
+
+        mFloatingGiveButton = (FloatingActionButton) findViewById(R.id.floating_give_button);
+        mFloatingGiveButton.setOnClickListener(new FabClickListener(false));
+        mFloatingGiveButton.hide();
 
         mDebtAddForm = (CardView) findViewById(R.id.debt_create_form);
         mDebtPersonList = (RecyclerView) findViewById(R.id.debt_create_contact_list);
@@ -166,7 +168,8 @@ public class DebtsListActivity extends AppCompatActivity {
             mDebtPersonList.setAdapter(new AccountsAdapter(this, forAdapter));
             mProgress.animate().alpha(0.0f).setDuration(0).start();
             supportInvalidateOptionsMenu();
-            mFloatingButton.show();
+            mFloatingGetButton.show();
+            mFloatingGiveButton.show();
 
 //            todo move to settings or some other manual action
 //            requestVisiblePeople(AccountHolder.getSavedAccountName(this));
@@ -361,7 +364,8 @@ public class DebtsListActivity extends AppCompatActivity {
                 case MSG_CIRCLES_LOADED:
                     mProgress.animate().alpha(0.0f).setDuration(500).start();
                     supportInvalidateOptionsMenu();
-                    mFloatingButton.show();
+                    mFloatingGetButton.show();
+                    mFloatingGiveButton.show();
 
                     // cache
                     List<Contact> forAdapter = new ArrayList<>(mContacts.values());
@@ -376,7 +380,8 @@ public class DebtsListActivity extends AppCompatActivity {
                     mDebtList.getAdapter().notifyItemInserted(0);
 
                     // hide FAB
-                    mFloatingButton.callOnClick();
+                    mFloatingGetButton.callOnClick();
+                    mFloatingGiveButton.callOnClick();
                     return true;
             }
 
@@ -394,7 +399,17 @@ public class DebtsListActivity extends AppCompatActivity {
             switch (msg.what) {
                 case MSG_CREATE_DEBT: {
                     Debt toCreate = (Debt) msg.obj;
-                    toCreate.setSrc(mCurrentPerson.toActor());
+                    if (toCreate.getAmount().compareTo(BigDecimal.ZERO) > 0) {
+                        toCreate.setSrc(mCurrentPerson.toActor());
+                        toCreate.setApprovedBySrc(true);
+                        toCreate.setApprovedByDest(false);
+                    } else {
+                        toCreate.setSrc(toCreate.getDest());
+                        toCreate.setDest(mCurrentPerson.toActor());
+                        toCreate.setAmount(toCreate.getAmount().negate());
+                        toCreate.setApprovedBySrc(false);
+                        toCreate.setApprovedByDest(true);
+                    }
 
                     // enclose it in request
                     DebtCreationRequest dcr = new DebtCreationRequest();
@@ -474,11 +489,21 @@ public class DebtsListActivity extends AppCompatActivity {
     }
 
     private class FabClickListener implements OnClickListener {
+        private boolean giveOrGet;
+
+        public FabClickListener(boolean giveOrGet) {
+            this.giveOrGet = giveOrGet;
+        }
+
         @Override
         public void onClick(View v) {
             if (mDebtAddForm.getVisibility() == View.INVISIBLE) {
-                mFloatingButton.animate().rotation(45f).setDuration(300).start();
+                mFloatingGiveButton.setVisibility(View.INVISIBLE);
+                mFloatingGetButton.setVisibility(View.INVISIBLE);
+                v.setVisibility(View.VISIBLE);
+                v.animate().rotation(45f).setDuration(300).start();
                 mDebtAddForm.setVisibility(View.VISIBLE);
+                ((AccountsAdapter)mDebtPersonList.getAdapter()).setGiveOrGet(giveOrGet);
                 Animator cr = ViewAnimationUtils.createCircularReveal(mDebtAddForm,
                         mDebtAddForm.getBottom(),
                         mDebtAddForm.getRight(),
@@ -487,7 +512,9 @@ public class DebtsListActivity extends AppCompatActivity {
 
                 cr.start();
             } else {
-                mFloatingButton.animate().rotation(0f).setDuration(300).start();
+                mFloatingGiveButton.setVisibility(View.VISIBLE);
+                mFloatingGetButton.setVisibility(View.VISIBLE);
+                v.animate().rotation(0f).setDuration(300).start();
                 Animator cr = ViewAnimationUtils.createCircularReveal(mDebtAddForm,
                         mDebtAddForm.getBottom(),
                         mDebtAddForm.getRight(),

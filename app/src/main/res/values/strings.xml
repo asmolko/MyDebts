@@ -8,7 +8,7 @@
     <string name="enter_amount">Введите сумму</string>
     <string name="avatar">Аватарка</string>
     <string name="debt_amount">Сумма долга</string>
-    <string name="how_bad_is_it">Насколько всё плохо?</string>
+    <string name="get_dialog_text">Сколько взял?</string>
     <string name="unknown_person">Неизвестно (нет в кругах)</string>
     <string name="server_sync_failed">Невозможно синхронизировать объект</string>
     <string name="refresh">Обновить</string>
@@ -18,4 +18,5 @@
     <string name="delete">Удалить</string>
     <string name="approve_dialog_title">Подтверждение</string>
     <string name="approve_dialog_message">Подтверждаете долг?</string>
+    <string name="give_dialog_text">Сколько дал?</string>
 </resources>
