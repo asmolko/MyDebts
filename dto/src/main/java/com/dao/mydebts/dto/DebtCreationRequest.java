@@ -4,8 +4,6 @@ import com.dao.mydebts.entities.Debt;
 
 /**
  * This request is sent when a person creates a debt locally.
- * There is no corresponding response DTO, HTTP 200 OK answer is
- * sufficient from server.
  *
  * @author Oleg Chernovskiy on 29.03.16.
  */

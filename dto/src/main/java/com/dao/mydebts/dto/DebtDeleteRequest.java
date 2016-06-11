@@ -3,19 +3,18 @@ package com.dao.mydebts.dto;
 import com.dao.mydebts.entities.Actor;
 
 /**
- * Sends approval request for known debt. The debt must have
- * approved either as debtor or creditor.
+ * Sends deletion request for known debt. The debt must <b>not</b> be approved by both parties.
  *
  * @// TODO: For now we trust a local client based on this answer.
  * @// TODO: The actual auth sequence is TBD later
  *
  * @author Oleg Chernovskiy on 04.04.16.
  */
-public class DebtApprovalRequest {
+public class DebtDeleteRequest {
 
     private Actor me;
 
-    private String debtIdToApprove;
+    private String debtIdToDelete;
 
     public Actor getMe() {
         return me;
@@ -25,11 +24,11 @@ public class DebtApprovalRequest {
         this.me = me;
     }
 
-    public String getDebtIdToApprove() {
-        return debtIdToApprove;
+    public String getDebtIdToDelete() {
+        return debtIdToDelete;
     }
 
-    public void setDebtIdToApprove(String debtIdToApprove) {
-        this.debtIdToApprove = debtIdToApprove;
+    public void setDebtIdToDelete(String debtIdToDelete) {
+        this.debtIdToDelete = debtIdToDelete;
     }
 }

@@ -2,6 +2,7 @@ package com.dao.mydebts
 
 import com.dao.mydebts.dto.DebtApprovalRequest
 import com.dao.mydebts.dto.DebtCreationRequest
+import com.dao.mydebts.dto.DebtDeleteRequest
 import com.dao.mydebts.dto.DebtsRequest
 import com.dao.mydebts.dto.DebtsResponse
 import com.dao.mydebts.dto.GenericResponse
@@ -56,16 +57,46 @@ class DebtsController {
     @RequestMapping(value = "/approve", method = RequestMethod.POST)
     GenericResponse approveDebt(@RequestBody DebtApprovalRequest request) {
         if (!request.me || !request.debtIdToApprove) {
-            return new GenericResponse(result: 'not approved')
+            return new GenericResponse(result: 'invalid request')
         }
 
         def debtToApprove = debtRepo.findOne request.debtIdToApprove
-        if(request.me.id != debtToApprove.dest.id) { // we are not a target of the debt
+        // sanity checks
+        if (!debtToApprove) {
+            return new GenericResponse(result: 'not found')
+        }
+
+        if (request.me.id != debtToApprove.dest.id) { // we are not a target of the debt
             return new GenericResponse(result: 'not approved')
         }
 
         debtToApprove.approvedByDest = true
         debtRepo.saveAndFlush debtToApprove
         return new GenericResponse(result: 'approved')
+    }
+
+    @RequestMapping(value = "/delete", method = RequestMethod.POST)
+    GenericResponse deleteDebt(@RequestBody DebtDeleteRequest request) {
+        if (!request.me || !request.debtIdToDelete) {
+            return new GenericResponse(result: 'invalid request')
+        }
+
+        def debtToDelete = debtRepo.findOne request.debtIdToDelete
+        // sanity checks
+        if (!debtToDelete) {
+            return new GenericResponse(result: 'not found')
+        }
+
+        if(debtToDelete.approvedByDest && debtToDelete.approvedBySrc) {
+            return new GenericResponse(result: 'not deleted')
+        }
+
+        // only concerned person can delete debt
+        if(debtToDelete.src.id != request.me.id && debtToDelete.dest.id != request.me.id) {
+            return new GenericResponse(result: 'not deleted')
+        }
+
+        debtRepo.delete debtToDelete
+        return new GenericResponse(result: 'deleted')
     }
 }

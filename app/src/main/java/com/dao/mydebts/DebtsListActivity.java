@@ -35,6 +35,7 @@ import com.dao.mydebts.adapters.AccountsAdapter;
 import com.dao.mydebts.adapters.DebtsAdapter;
 import com.dao.mydebts.dto.DebtApprovalRequest;
 import com.dao.mydebts.dto.DebtCreationRequest;
+import com.dao.mydebts.dto.DebtDeleteRequest;
 import com.dao.mydebts.dto.DebtsRequest;
 import com.dao.mydebts.dto.DebtsResponse;
 import com.dao.mydebts.dto.GenericResponse;
@@ -81,6 +82,8 @@ public class DebtsListActivity extends AppCompatActivity {
     public static final int MSG_DEBT_CREATED     = 3;
     public static final int MSG_APPROVE_DEBT     = 4;
     public static final int MSG_DEBT_APPROVED    = 5;
+    public static final int MSG_DELETE_DEBT      = 6;
+    public static final int MSG_DEBT_DELETED     = 7;
 
     // GUI-related
     private RecyclerView mDebtList;
@@ -418,6 +421,20 @@ public class DebtsListActivity extends AppCompatActivity {
                     GenericResponse gr = postServerRoundtrip(Constants.SERVER_ENDPOINT_APPROVE, dar, GenericResponse.class);
                     if (gr != null && TextUtils.equals(gr.getResult(), "approved")) {
                         toApprove.setApprovedByDest(true);
+                        getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();
+                        return true;
+                    }
+                    return false;
+                }
+                case MSG_DELETE_DEBT: {
+                    Debt toDelete = (Debt) msg.obj;
+                    // enclose in request
+                    DebtDeleteRequest ddr = new DebtDeleteRequest();
+                    ddr.setDebtIdToDelete(toDelete.getId());
+                    ddr.setMe(mCurrentPerson.toActor());
+
+                    GenericResponse gr = postServerRoundtrip(Constants.SERVER_ENDPOINT_DELETE, ddr, GenericResponse.class);
+                    if (gr != null && TextUtils.equals(gr.getResult(), "deleted")) {
                         getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();
                         return true;
                     }
