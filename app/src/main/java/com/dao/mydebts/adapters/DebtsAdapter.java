@@ -1,16 +1,23 @@
 package com.dao.mydebts.adapters;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.dao.mydebts.DebtsListActivity;
 import com.dao.mydebts.R;
@@ -88,6 +95,7 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
         private final TextView destApproval;
         private final TextView amount;
         private final TextView date;
+        private final ImageView overflowButton;
 
         private Debt item;
 
@@ -96,6 +104,9 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
             view.setTag(this);
             CardView main = (CardView) view.findViewById(R.id.debt_item_root);
             view.setOnClickListener(new DebtApproveListener());
+            overflowButton = (ImageView) view.findViewById(R.id.debt_item_popup_menu);
+            overflowButton.setTag(this);
+            overflowButton.setOnClickListener(new DebtMenuListener());
 
             srcBadge = (ImageView) main.findViewById(R.id.debt_item_src_img);
             srcName = (TextView) main.findViewById(R.id.debt_item_src_name);
@@ -194,6 +205,35 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
             Handler bHandler = casted.getBackgroundHandler();
             Message msg = Message.obtain(bHandler, DebtsListActivity.MSG_APPROVE_DEBT, toApprove);
             bHandler.sendMessage(msg);
+        }
+    }
+
+    private class DebtMenuListener implements View.OnClickListener {
+        @Override
+        public void onClick(View v) {
+            AccViewHolder holder = (AccViewHolder) v.getTag();
+            final Debt requested = holder.item;
+
+            PopupMenu pm = new PopupMenu(v.getContext(), v);
+            pm.inflate(R.menu.popup_debt_item);
+            if(requested.isApprovedByDest() && requested.isApprovedBySrc()) { // approved debt, can't delete
+                pm.getMenu().findItem(R.id.delete_debt).setVisible(false);
+            }
+            pm.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                @Override
+                public boolean onMenuItemClick(MenuItem item) {
+                    switch (item.getItemId()) {
+                        case R.id.delete_debt:
+                            DebtsListActivity casted = (DebtsListActivity) mContext;
+                            Handler bHandler = casted.getBackgroundHandler();
+                            Message msg = Message.obtain(bHandler, DebtsListActivity.MSG_DELETE_DEBT, requested);
+                            bHandler.sendMessage(msg);
+                            return true;
+                    }
+                    return false;
+                }
+            });
+            pm.show();
         }
     }
 }

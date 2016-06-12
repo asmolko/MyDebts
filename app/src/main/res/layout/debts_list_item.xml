@@ -6,7 +6,7 @@
     android:layout_height="wrap_content"
     android:id="@+id/debt_item_root"
     android:layout_margin="5dp"
-    android:background="?android:attr/selectableItemBackground"
+    android:foreground="?android:attr/selectableItemBackground"
     tools:ignore="PrivateResource">
 
     <RelativeLayout
