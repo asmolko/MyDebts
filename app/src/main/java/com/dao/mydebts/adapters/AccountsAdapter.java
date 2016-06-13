@@ -3,17 +3,11 @@ package com.dao.mydebts.adapters;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
-import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -28,18 +22,9 @@ import com.dao.mydebts.entities.Contact;
 import com.dao.mydebts.entities.Debt;
 import com.dao.mydebts.misc.ImageCache;
 
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
-
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 
 /**
  * Adapter holding contact cards.
@@ -53,6 +38,7 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
 
     private final List<Contact> mContacts;
     private final Context mContext;
+    private boolean giveOrGet;
 
     /**
      * Constructs new AccountsAdapter.
@@ -94,6 +80,14 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
         return mContacts.size();
     }
 
+    public void setGiveOrGet(boolean giveOrGet) {
+        this.giveOrGet = giveOrGet;
+    }
+
+    public boolean isGiveOrGet() {
+        return giveOrGet;
+    }
+
     class AccViewHolder extends RecyclerView.ViewHolder {
         private final ImageView badge;
         private final TextView name;
@@ -117,7 +111,7 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
                 new AlertDialog.Builder(v.getContext())
                         .setView(input)
                         .setTitle(who.getDisplayName())
-                        .setMessage(R.string.how_bad_is_it)
+                        .setMessage(isGiveOrGet() ? R.string.give_dialog_text : R.string.get_dialog_text)
                         .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
@@ -130,7 +124,8 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
                                 // convert to app entities
                                 Debt toCreate = new Debt();
                                 toCreate.setDest(who.toActor());
-                                toCreate.setAmount(new BigDecimal(amount));
+                                BigDecimal bigDecimal = new BigDecimal(amount);
+                                toCreate.setAmount(isGiveOrGet() ? bigDecimal.negate() : bigDecimal);
 
                                 // send back to activity
                                 DebtsListActivity casted = (DebtsListActivity) mContext;

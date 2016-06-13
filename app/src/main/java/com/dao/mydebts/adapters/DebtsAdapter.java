@@ -1,12 +1,10 @@
 package com.dao.mydebts.adapters;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
-import android.content.Intent;
+import android.content.DialogInterface;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
@@ -17,12 +15,9 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.dao.mydebts.DebtsListActivity;
 import com.dao.mydebts.R;
-import com.dao.mydebts.dto.DebtApprovalRequest;
-import com.dao.mydebts.entities.Actor;
 import com.dao.mydebts.entities.Contact;
 import com.dao.mydebts.entities.Debt;
 import com.dao.mydebts.misc.AccountHolder;
@@ -185,6 +180,33 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
 
     private class DebtApproveListener implements View.OnClickListener {
 
+        private Debt toApprove;
+
+        private AlertDialog buildApproveDialog() {
+            AlertDialog dialog;
+            AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+            builder.setTitle(R.string.approve_dialog_title);
+            builder.setMessage(R.string.approve_dialog_message);
+            builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                    // send back to activity
+                    DebtsListActivity casted = (DebtsListActivity) mContext;
+                    Handler bHandler = casted.getBackgroundHandler();
+                    Message msg = Message.obtain(bHandler, DebtsListActivity.MSG_APPROVE_DEBT, toApprove);
+                    bHandler.sendMessage(msg);
+                    toApprove = null;
+                    dialog.dismiss();
+                }
+            });
+            builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                    dialog.dismiss();
+                }
+            });
+            dialog = builder.create();
+            return dialog;
+        }
+
         @Override
         public void onClick(View v) {
             AccViewHolder holder = (AccViewHolder) v.getTag();
@@ -200,11 +222,8 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
                 return;
             }
 
-            // send back to activity
-            DebtsListActivity casted = (DebtsListActivity) mContext;
-            Handler bHandler = casted.getBackgroundHandler();
-            Message msg = Message.obtain(bHandler, DebtsListActivity.MSG_APPROVE_DEBT, toApprove);
-            bHandler.sendMessage(msg);
+            this.toApprove = toApprove;
+            buildApproveDialog().show();
         }
     }
 

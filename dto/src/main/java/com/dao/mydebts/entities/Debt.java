@@ -20,9 +20,9 @@ public class Debt {
 
     private Date created = new Date();
 
-    private boolean approvedBySrc = true;
+    private boolean approvedBySrc;
 
-    private boolean approvedByDest = false;
+    private boolean approvedByDest;
 
     public String getId() {
         return id;
