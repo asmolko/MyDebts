@@ -3,6 +3,8 @@ MyDebts
 
 [![Build Status](https://travis-ci.org/asmolko/MyDebts.svg?branch=master)](https://travis-ci.org/asmolko/MyDebts)
 
+[![Coverage Status](https://coveralls.io/repos/github/asmolko/MyDebts/badge.svg?branch=master)](https://coveralls.io/github/asmolko/MyDebts?branch=master)
+
 A collaborative effort to implement debt ralaxation software after our
 frequent dinner-split parties :)
 
