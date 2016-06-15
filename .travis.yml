@@ -1,0 +1,7 @@
+language: groovy
+
+install: true
+
+script:
+    - mv -v settings.gradle{.travis,}
+    - ./gradlew :mydebts-server:build

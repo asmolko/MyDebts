@@ -58,5 +58,15 @@ dependencies {
     testCompile 'junit:junit:4.12'
 }
 
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:2.1.2'
+        classpath 'com.google.gms:google-services:2.1.0-alpha5'
+    }
+}
+
 // must be below app config to detect dependency
 apply plugin: 'com.google.gms.google-services'
