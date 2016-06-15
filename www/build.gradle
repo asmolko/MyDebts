@@ -18,8 +18,8 @@ apply plugin: 'groovy'
 apply plugin: 'application'
 apply plugin: 'spring-boot'
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
 
 dependencyManagement {
     dependencies {
@@ -33,14 +33,16 @@ dependencies {
     compile 'org.codehaus.groovy:groovy-all:2.4.6'
     // jetty config
     compile 'org.springframework.boot:spring-boot-starter-data-jpa'
-    compile("org.springframework.boot:spring-boot-starter-web") {
-        exclude module: "spring-boot-starter-tomcat"
+    compile('org.springframework.boot:spring-boot-starter-web') {
+        exclude module: 'spring-boot-starter-tomcat'
     }
-    compile "org.springframework.boot:spring-boot-starter-jetty"
+    compile 'org.springframework.boot:spring-boot-starter-jetty'
     // actuator
-    compile "org.springframework.boot:spring-boot-starter-actuator"
+    compile 'org.springframework.boot:spring-boot-starter-actuator'
     // database
-    compile "com.h2database:h2:1.4.191"
+    compile 'com.h2database:h2:1.4.191'
     // junit
-    testCompile("junit:junit")
+    testCompile 'junit:junit'
+    testCompile 'org.springframework.boot:spring-boot-starter-test'
+    testCompile 'com.jayway.jsonpath:json-path:2.0.0'
 }
