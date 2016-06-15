@@ -1,6 +1,8 @@
 MyDebts
 ==========
 
+[![Build Status](https://travis-ci.org/asmolko/MyDebts.svg?branch=master)](https://travis-ci.org/asmolko/MyDebts)
+
 A collaborative effort to implement debt ralaxation software after our
 frequent dinner-split parties :)
 
