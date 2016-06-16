@@ -20,7 +20,8 @@ import org.springframework.transaction.annotation.Transactional
 @WebIntegrationTest(["spring.datasource.url=jdbc:h2:mem:spec;DB_CLOSE_DELAY=0;MVCC=TRUE;LOCK_MODE=1"])
 @Transactional
 @Rollback
-class SettlementsEngingTest {
+class SettlementsEngineTest {
+
     @Autowired
     StoredDebtRepo debtRepo
 
@@ -57,19 +58,23 @@ class SettlementsEngingTest {
         StoredActor a = new StoredActor('a')
         StoredActor b = new StoredActor('b')
         StoredActor c = new StoredActor('c')
-        StoredActor d = new StoredActor('d')
+        StoredActor d = new StoredActor('d') // this is Gleb
         StoredActor e = new StoredActor('e')
         StoredActor f = new StoredActor('f')
         actorRepo.save([a, b, c, d, e, f])
 
+        // unfinished cycle 1
         StoredDebt ab = new StoredDebt(src: a, dest: b, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
         StoredDebt bc = new StoredDebt(src: b, dest: c, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
         StoredDebt cd = new StoredDebt(src: c, dest: d, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
         StoredDebt de = new StoredDebt(src: d, dest: e, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
         StoredDebt ef = new StoredDebt(src: e, dest: f, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+
+        // unfinished cycle 2
         StoredDebt ac = new StoredDebt(src: a, dest: c, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
         StoredDebt cf = new StoredDebt(src: c, dest: f, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
-        // finally!
+
+        // finally! completes cycles 1 and 2
         StoredDebt fa = new StoredDebt(src: f, dest: a, amount: 20, created: new Date(), approvedBySrc: true, approvedByDest: false)
         debtRepo.save([ab, bc, cd, de, ef, ac, cf, fa])
 

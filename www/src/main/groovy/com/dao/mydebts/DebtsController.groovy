@@ -11,6 +11,8 @@ import com.dao.mydebts.repos.StoredActorRepo
 import com.dao.mydebts.repos.StoredDebtRepo
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
+import org.springframework.transaction.annotation.Propagation
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -34,6 +36,9 @@ class DebtsController {
     @Autowired
     private StoredActorRepo actorRepo
 
+    @Autowired
+    private SettlementEngine settleEngine;
+
     @RequestMapping(value = "/debts", method = RequestMethod.POST)
     DebtsResponse debtsForPerson(@RequestBody DebtsRequest request) {
         def response = new DebtsResponse(me: request.me)
@@ -54,6 +59,12 @@ class DebtsController {
         return new GenericResponse(result: 'created', newId: saved.id)
     }
 
+    /**
+     * Note: Triggers debts mutual settlement engine
+     * @param request
+     * @return
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
     @RequestMapping(value = "/approve", method = RequestMethod.POST)
     GenericResponse approveDebt(@RequestBody DebtApprovalRequest request) {
         if (!request.me || !request.debtIdToApprove) {
@@ -71,7 +82,8 @@ class DebtsController {
         }
 
         debtToApprove.approvedByDest = true
-        debtRepo.saveAndFlush debtToApprove
+        def stored = debtRepo.saveAndFlush debtToApprove
+        settleEngine.relax stored
         return new GenericResponse(result: 'approved')
     }
 
