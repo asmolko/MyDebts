@@ -15,11 +15,20 @@ buildscript {
 
 apply plugin: 'idea'
 apply plugin: 'groovy'
+apply plugin: "jacoco"
 apply plugin: 'application'
 apply plugin: 'spring-boot'
 
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
+
+jacocoTestReport {
+    reports {
+        html.enabled = true
+        xml.enabled = true
+        csv.enabled = false
+    }
+}
 
 dependencyManagement {
     dependencies {
