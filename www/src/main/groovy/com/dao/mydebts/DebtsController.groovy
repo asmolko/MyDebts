@@ -21,6 +21,9 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Main debt system rest controller. Manages creation/approval of debts.
  * Also serves as thin DAO layer as persist logic is fairly simple for now.
+ * <p/>
+ * Clients of this service are android clients, bots etc. so it can be considered as
+ * server public API.
  *
  * @author Oleg Chernovskiy
  */
@@ -39,6 +42,11 @@ class DebtsController {
     @Autowired
     private SettlementEngine settleEngine;
 
+    /**
+     * Queries database for debts related to current person
+     * @param request request containing user-identifying info
+     * @return response containing all related debts, never null
+     */
     @RequestMapping(value = "/debts", method = RequestMethod.POST)
     DebtsResponse debtsForPerson(@RequestBody DebtsRequest request) {
         def response = new DebtsResponse(me: request.me)
@@ -46,6 +54,11 @@ class DebtsController {
         return response
     }
 
+    /**
+     * Persists received debt in database
+     * @param request container with debt
+     * @return response with operation status
+     */
     @RequestMapping(value = "/createDebt", method = RequestMethod.POST)
     GenericResponse createDebt(@RequestBody DebtCreationRequest request) {
         if (!request.created) {
@@ -60,9 +73,11 @@ class DebtsController {
     }
 
     /**
-     * Note: Triggers debts mutual settlement engine
-     * @param request
-     * @return
+     * Approves debt and updates it in database.
+     * <p/>
+     * <b>Note: Triggers debts mutual settlement engine!</b>
+     * @param request request containing debt- and actor-identifying info
+     * @return response with operation status
      */
     @Transactional(propagation = Propagation.REQUIRED)
     @RequestMapping(value = "/approve", method = RequestMethod.POST)
@@ -87,6 +102,12 @@ class DebtsController {
         return new GenericResponse(result: 'approved')
     }
 
+    /**
+     * Deletes debt from database. Only non-approved debts can be deleted, and only by person
+     * that approved them on creation.
+     * @param request request containing debt- and actor-identifying info
+     * @return response with operation status
+     */
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
     GenericResponse deleteDebt(@RequestBody DebtDeleteRequest request) {
         if (!request.me || !request.debtIdToDelete) {
