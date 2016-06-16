@@ -47,13 +47,43 @@ class SettlementsEngingTest {
 
         assert d3.approvedByDest
 
-        assert d1.settled
-        assert d2.settled
-        assert d3.settled
-
         assert d1.amount == 0.0
         assert d2.amount == 10.0
         assert d3.amount == 20.0
+    }
 
+    @Test
+    void 'test two cycles are settled'() {
+        StoredActor a = new StoredActor('a')
+        StoredActor b = new StoredActor('b')
+        StoredActor c = new StoredActor('c')
+        StoredActor d = new StoredActor('d')
+        StoredActor e = new StoredActor('e')
+        StoredActor f = new StoredActor('f')
+        actorRepo.save([a, b, c, d, e, f])
+
+        StoredDebt ab = new StoredDebt(src: a, dest: b, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt bc = new StoredDebt(src: b, dest: c, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt cd = new StoredDebt(src: c, dest: d, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt de = new StoredDebt(src: d, dest: e, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt ef = new StoredDebt(src: e, dest: f, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt ac = new StoredDebt(src: a, dest: c, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt cf = new StoredDebt(src: c, dest: f, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        // finally!
+        StoredDebt fa = new StoredDebt(src: f, dest: a, amount: 20, created: new Date(), approvedBySrc: true, approvedByDest: false)
+        debtRepo.save([ab, bc, cd, de, ef, ac, cf, fa])
+
+        controller.approveDebt(new DebtApprovalRequest(me: new Actor('a'), debtIdToApprove: fa.id))
+
+        assert fa.approvedByDest
+
+        assert ab.amount == 0.0
+        assert bc.amount == 0.0
+        assert cd.amount == 0.0
+        assert de.amount == 0.0
+        assert ef.amount == 0.0
+        assert ac.amount == 0.0
+        assert cf.amount == 0.0
+        assert fa.amount == 0.0
     }
 }
