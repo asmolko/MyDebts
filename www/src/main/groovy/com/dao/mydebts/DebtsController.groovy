@@ -50,7 +50,7 @@ class DebtsController {
     @RequestMapping(value = "/debts", method = RequestMethod.POST)
     DebtsResponse debtsForPerson(@RequestBody DebtsRequest request) {
         def response = new DebtsResponse(me: request.me)
-        response.debts = debtRepo.findByActor(request.me.id).collect {it -> it.toDto()}
+        response.debts = debtRepo.findByActor(request.me.id).collect { it -> it.toDto() }
         return response
     }
 
@@ -92,14 +92,19 @@ class DebtsController {
             return new GenericResponse(result: 'not found')
         }
 
-        if (request.me.id != debtToApprove.dest.id) { // we are not a target of the debt
+        if (request.me.id == debtToApprove.dest.id && !debtToApprove.approvedByDest) {
+            debtToApprove.approvedByDest = true
+            def stored = debtRepo.saveAndFlush debtToApprove
+            settleEngine.relax stored
+            return new GenericResponse(result: 'approved by dest')
+        } else if (request.me.id == debtToApprove.src.id && !debtToApprove.approvedBySrc) {
+            debtToApprove.approvedBySrc = true
+            def stored = debtRepo.saveAndFlush debtToApprove
+            settleEngine.relax stored
+            return new GenericResponse(result: 'approved by src')
+        } else {
             return new GenericResponse(result: 'not approved')
         }
-
-        debtToApprove.approvedByDest = true
-        def stored = debtRepo.saveAndFlush debtToApprove
-        settleEngine.relax stored
-        return new GenericResponse(result: 'approved')
     }
 
     /**
@@ -120,12 +125,12 @@ class DebtsController {
             return new GenericResponse(result: 'not found')
         }
 
-        if(debtToDelete.approvedByDest && debtToDelete.approvedBySrc) {
+        if (debtToDelete.approvedByDest && debtToDelete.approvedBySrc) {
             return new GenericResponse(result: 'not deleted')
         }
 
         // only concerned person can delete debt
-        if(debtToDelete.src.id != request.me.id && debtToDelete.dest.id != request.me.id) {
+        if (debtToDelete.src.id != request.me.id && debtToDelete.dest.id != request.me.id) {
             return new GenericResponse(result: 'not deleted')
         }
 
