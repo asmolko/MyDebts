@@ -13,6 +13,7 @@ import javax.persistence.ManyToOne
  * Main entity class for server workflow. This is created in mobile clients
  * and passed via DTOs to be persisted on server.
  *
+ * @see Debt
  * @author Oleg Chernovskiy
  */
 @Entity
@@ -44,6 +45,9 @@ class StoredDebt {
 
     @Column
     boolean approvedByDest
+
+    @Column
+    String description
 
     Debt toDto() {
         return new Debt(

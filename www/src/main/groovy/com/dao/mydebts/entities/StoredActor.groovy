@@ -10,6 +10,7 @@ import javax.persistence.Id
  * <p/>Though id-only for now, this is a subject to contain some additional metadata in future,
  * hence extracted to distinct class.
  *
+ * @see Actor
  * @author Oleg Chernovskiy
  */
 @Entity
