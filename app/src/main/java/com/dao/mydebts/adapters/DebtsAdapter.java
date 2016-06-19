@@ -194,7 +194,6 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
                     Handler bHandler = casted.getBackgroundHandler();
                     Message msg = Message.obtain(bHandler, DebtsListActivity.MSG_APPROVE_DEBT, toApprove);
                     bHandler.sendMessage(msg);
-                    toApprove = null;
                     dialog.dismiss();
                 }
             });

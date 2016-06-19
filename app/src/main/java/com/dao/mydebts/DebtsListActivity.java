@@ -59,6 +59,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Objects;
 
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -435,7 +436,12 @@ public class DebtsListActivity extends AppCompatActivity {
 
                     GenericResponse gr = postServerRoundtrip(Constants.SERVER_ENDPOINT_APPROVE, dar, GenericResponse.class);
                     if (gr != null && TextUtils.equals(gr.getResult(), "approved")) {
-                        toApprove.setApprovedByDest(true);
+                        if (Objects.equals(dar.getMe().getId(), toApprove.getSrc().getId())) {
+                            toApprove.setApprovedBySrc(true);
+                        }
+                        if (Objects.equals(dar.getMe().getId(), toApprove.getDest().getId())) {
+                            toApprove.setApprovedByDest(true);
+                        }
                         getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();
                         return true;
                     }
