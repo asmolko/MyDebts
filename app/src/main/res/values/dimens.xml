@@ -3,7 +3,6 @@
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
-    <dimen name="give_fab_bottom_margin">80dp</dimen>
     <dimen name="default_gap">16dp</dimen>
     <dimen name="default_press_size">48dp</dimen>
 </resources>

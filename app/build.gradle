@@ -54,6 +54,8 @@ dependencies {
     compile 'com.squareup.okhttp3:okhttp:3.2.0'
     // DB wrapper for Android
     compile 'com.github.satyan:sugar:1.5'
+    // Floating action button with menu
+    compile 'com.github.clans:fab:1.6.4'
 
     testCompile 'junit:junit:4.12'
 }

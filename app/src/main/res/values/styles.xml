@@ -8,15 +8,6 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
-    <style name="AppTheme.NoActionBar">
-        <item name="windowActionBar">false</item>
-        <item name="windowNoTitle">true</item>
-    </style>
-
-    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
-
-    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
-
     <style name="ProgressBar" />
 
     <style name="ProgressBar.Custom" />
@@ -26,6 +17,14 @@
         <item name="android:indeterminateDuration">@integer/custom_progressbar_animation_duration</item>
         <item name="android:indeterminateDrawable">@drawable/custom_progress_circle</item>
         <item name="android:layout_margin">@dimen/default_gap</item>
+    </style>
+
+    <!-- FAB styles -->
+
+    <style name="MenuButtonsStyle">
+        <item name="fab_size">mini</item>
+        <item name="fab_showAnimation">@anim/jump_from_down</item>
+        <item name="fab_hideAnimation">@anim/jump_to_down</item>
     </style>
 
 </resources>

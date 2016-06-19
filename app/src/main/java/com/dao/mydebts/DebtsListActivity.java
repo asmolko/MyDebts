@@ -11,7 +11,6 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
@@ -39,6 +38,8 @@ import com.dao.mydebts.entities.Contact;
 import com.dao.mydebts.entities.Debt;
 import com.dao.mydebts.misc.AbstractNetworkLoader;
 import com.dao.mydebts.misc.AccountHolder;
+import com.github.clans.fab.FloatingActionButton;
+import com.github.clans.fab.FloatingActionMenu;
 import com.google.android.gms.common.AccountPicker;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -86,6 +87,7 @@ public class DebtsListActivity extends AppCompatActivity {
     // GUI-related
     private RecyclerView mDebtList;
     private ProgressBar mProgress;
+    private FloatingActionMenu mFloatingMenu;
     private FloatingActionButton mFloatingGetButton;
     private FloatingActionButton mFloatingGiveButton;
 
@@ -134,13 +136,13 @@ public class DebtsListActivity extends AppCompatActivity {
         mDebtList.setAdapter(adapter);
 
         mProgress = (ProgressBar) findViewById(R.id.loader);
-        mFloatingGetButton = (FloatingActionButton) findViewById(R.id.floating_get_button);
-        mFloatingGetButton.setOnClickListener(new FabClickListener(true));
-        mFloatingGetButton.hide();
 
+        mFloatingMenu = (FloatingActionMenu) findViewById(R.id.floating_menu);
+        mFloatingMenu.setOnMenuToggleListener(new FamClickListener());
+        mFloatingGetButton = (FloatingActionButton) findViewById(R.id.floating_get_button);
+        mFloatingGetButton.setOnClickListener(new FabClickListener(false));
         mFloatingGiveButton = (FloatingActionButton) findViewById(R.id.floating_give_button);
-        mFloatingGiveButton.setOnClickListener(new FabClickListener(false));
-        mFloatingGiveButton.hide();
+        mFloatingGiveButton.setOnClickListener(new FabClickListener(true));
 
         mDebtAddForm = (CardView) findViewById(R.id.debt_create_form);
         mDebtPersonList = (RecyclerView) findViewById(R.id.debt_create_contact_list);
@@ -169,8 +171,6 @@ public class DebtsListActivity extends AppCompatActivity {
             mDebtPersonList.setAdapter(new AccountsAdapter(this, forAdapter));
             mProgress.animate().alpha(0.0f).setDuration(0).start();
             supportInvalidateOptionsMenu();
-            mFloatingGetButton.show();
-            mFloatingGiveButton.show();
 
 //            todo move to settings or some other manual action
 //            requestVisiblePeople(AccountHolder.getSavedAccountName(this));
@@ -365,8 +365,7 @@ public class DebtsListActivity extends AppCompatActivity {
                 case MSG_CIRCLES_LOADED:
                     mProgress.animate().alpha(0.0f).setDuration(500).start();
                     supportInvalidateOptionsMenu();
-                    mFloatingGetButton.show();
-                    mFloatingGiveButton.show();
+                    mFloatingMenu.showMenuButton(true);
 
                     // cache
                     List<Contact> forAdapter = new ArrayList<>(mContacts.values());
@@ -380,13 +379,81 @@ public class DebtsListActivity extends AppCompatActivity {
                     mDebts.add(0, (Debt) msg.obj);
                     mDebtList.getAdapter().notifyItemInserted(0);
 
-                    // hide FAB
-                    mFloatingGetButton.callOnClick();
-                    mFloatingGiveButton.callOnClick();
+                    // hide contact list and FAM
+                    mFloatingMenu.hideMenu(true);
+                    toggleContactListVisibility();
                     return true;
             }
 
             return false;
+        }
+    }
+
+    @Nullable
+    private <REQ, RESP> RESP postServerRoundtrip(String endpoint, REQ request, Class<RESP> respClass) {
+        Request postQuery = new Request.Builder()
+                .url(endpoint)
+                .post(RequestBody.create(Constants.JSON_MIME_TYPE, mJsonSerializer.toJson(request)))
+                .build();
+
+        // send request across the network
+        try {
+            Response answer = mHttpClient.newCall(postQuery).execute();
+            if (answer.isSuccessful()) {
+                return mJsonSerializer.fromJson(answer.body().string(), respClass);
+            }
+        } catch (IOException e) {
+            Log.e(DLA_TAG, "Server sync failed, object: " + request, e);
+        }
+
+        // if we fall this far then something is wrong
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), R.string.server_sync_failed, Toast.LENGTH_SHORT).show();
+            }
+        });
+        return null;
+    }
+
+    private void toggleContactListVisibility() {
+        if (mDebtAddForm.getVisibility() == View.INVISIBLE) {
+            mDebtAddForm.setVisibility(View.VISIBLE);
+            Animator cr = ViewAnimationUtils.createCircularReveal(mDebtAddForm,
+                    mDebtAddForm.getBottom(),
+                    mDebtAddForm.getRight(),
+                    0,
+                    Math.max(mDebtAddForm.getWidth(), mDebtAddForm.getHeight()) * 2);
+
+            cr.start();
+        } else {
+            Animator cr = ViewAnimationUtils.createCircularReveal(mDebtAddForm,
+                    mDebtAddForm.getBottom(),
+                    mDebtAddForm.getRight(),
+                    Math.max(mDebtAddForm.getWidth(), mDebtAddForm.getHeight()) * 2,
+                    0);
+            cr.addListener(new Animator.AnimatorListener() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+
+                }
+
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    mDebtAddForm.setVisibility(View.INVISIBLE);
+                }
+
+                @Override
+                public void onAnimationCancel(Animator animation) {
+
+                }
+
+                @Override
+                public void onAnimationRepeat(Animator animation) {
+
+                }
+            });
+            cr.start();
         }
     }
 
@@ -467,87 +534,26 @@ public class DebtsListActivity extends AppCompatActivity {
         }
     }
 
-    @Nullable
-    private <REQ, RESP> RESP postServerRoundtrip(String endpoint, REQ request, Class<RESP> respClass) {
-        Request postQuery = new Request.Builder()
-                .url(endpoint)
-                .post(RequestBody.create(Constants.JSON_MIME_TYPE, mJsonSerializer.toJson(request)))
-                .build();
-
-        // send request across the network
-        try {
-            Response answer = mHttpClient.newCall(postQuery).execute();
-            if (answer.isSuccessful()) {
-                return mJsonSerializer.fromJson(answer.body().string(), respClass);
-            }
-        } catch (IOException e) {
-            Log.e(DLA_TAG, "Server sync failed, object: " + request, e);
-        }
-
-        // if we fall this far then something is wrong
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(), R.string.server_sync_failed, Toast.LENGTH_SHORT).show();
-            }
-        });
-        return null;
-    }
-
     private class FabClickListener implements OnClickListener {
-        private boolean giveOrGet;
+        private boolean iAmDest;
 
-        public FabClickListener(boolean giveOrGet) {
-            this.giveOrGet = giveOrGet;
+        FabClickListener(boolean giveOrGet) {
+            this.iAmDest = giveOrGet;
         }
 
         @Override
         public void onClick(View v) {
-            if (mDebtAddForm.getVisibility() == View.INVISIBLE) {
-                mFloatingGiveButton.setVisibility(View.INVISIBLE);
-                mFloatingGetButton.setVisibility(View.INVISIBLE);
-                v.setVisibility(View.VISIBLE);
-                v.animate().rotation(45f).setDuration(300).start();
-                mDebtAddForm.setVisibility(View.VISIBLE);
-                ((AccountsAdapter)mDebtPersonList.getAdapter()).setGiveOrGet(giveOrGet);
-                Animator cr = ViewAnimationUtils.createCircularReveal(mDebtAddForm,
-                        mDebtAddForm.getBottom(),
-                        mDebtAddForm.getRight(),
-                        0,
-                        Math.max(mDebtAddForm.getWidth(), mDebtAddForm.getHeight()) * 2);
+            mDebtPersonList.setTag(iAmDest);
+            toggleContactListVisibility();
+        }
+    }
 
-                cr.start();
-            } else {
-                mFloatingGiveButton.setVisibility(View.VISIBLE);
-                mFloatingGetButton.setVisibility(View.VISIBLE);
-                v.animate().rotation(0f).setDuration(300).start();
-                Animator cr = ViewAnimationUtils.createCircularReveal(mDebtAddForm,
-                        mDebtAddForm.getBottom(),
-                        mDebtAddForm.getRight(),
-                        Math.max(mDebtAddForm.getWidth(), mDebtAddForm.getHeight()) * 2,
-                        0);
-                cr.addListener(new Animator.AnimatorListener() {
-                    @Override
-                    public void onAnimationStart(Animator animation) {
-
-                    }
-
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        mDebtAddForm.setVisibility(View.INVISIBLE);
-                    }
-
-                    @Override
-                    public void onAnimationCancel(Animator animation) {
-
-                    }
-
-                    @Override
-                    public void onAnimationRepeat(Animator animation) {
-
-                    }
-                });
-                cr.start();
+    private class FamClickListener implements FloatingActionMenu.OnMenuToggleListener {
+        @Override
+        public void onMenuToggle(boolean opened) {
+            // contact list is visible but we closed the menu, hide it too
+            if(!opened && mDebtAddForm.getVisibility() == View.VISIBLE) {
+                toggleContactListVisibility();
             }
         }
     }
