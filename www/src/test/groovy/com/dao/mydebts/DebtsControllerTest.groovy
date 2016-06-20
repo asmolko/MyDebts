@@ -10,6 +10,7 @@ import com.dao.mydebts.entities.StoredActor
 import com.dao.mydebts.entities.StoredDebt
 import com.dao.mydebts.repos.StoredActorRepo
 import com.dao.mydebts.repos.StoredDebtRepo
+import org.h2.mvstore.db.MVTableEngine
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,6 +59,8 @@ class DebtsControllerTest {
 
     MockMvc mock
 
+    Collection<StoredDebt> initialDebts
+
     /**
      * IDs will change on every transaction nevertheless, take care!
      */
@@ -83,8 +86,17 @@ class DebtsControllerTest {
                                          created: new Date(),
                                          approvedBySrc: true,
                                          approvedByDest: false)
+
+        StoredDebt debt3 = new StoredDebt(src: actor2,
+                                         dest: actor1,
+                                         amount: 1000,
+                                         created: new Date(),
+                                         approvedBySrc: false,
+                                         approvedByDest: true)
+        initialDebts = [debt1, debt2, debt3]
         debtRepo.saveAndFlush debt1
         debtRepo.saveAndFlush debt2
+        debtRepo.saveAndFlush debt3
     }
 
     // positive tests
@@ -96,7 +108,7 @@ class DebtsControllerTest {
         mock.perform(post('/debt/debts').content(body).contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(jsonPath('$.me.id', is('100500')))
-            .andExpect(jsonPath('$.debts', hasSize(2)))
+            .andExpect(jsonPath('$.debts', hasSize(3)))
             .andExpect(jsonPath('$.debts[0].amount', is(500)))
             .andExpect(jsonPath('$.debts[0].src.id', is('100500')))
             .andExpect(jsonPath('$.debts[0].dest.id', is('100501')))
@@ -107,6 +119,11 @@ class DebtsControllerTest {
             .andExpect(jsonPath('$.debts[1].dest.id', is('100500')))
             .andExpect(jsonPath('$.debts[1].approvedBySrc', is(true)))
             .andExpect(jsonPath('$.debts[1].approvedByDest', is(false)))
+            .andExpect(jsonPath('$.debts[2].amount', is(1000)))
+            .andExpect(jsonPath('$.debts[2].src.id', is('100501')))
+            .andExpect(jsonPath('$.debts[2].dest.id', is('100500')))
+            .andExpect(jsonPath('$.debts[2].approvedBySrc', is(false)))
+            .andExpect(jsonPath('$.debts[2].approvedByDest', is(true)))
     }
 
     @Test
@@ -134,7 +151,7 @@ class DebtsControllerTest {
     @Test
     void 'test debt removal'() {
         def storedBefore = debtRepo.findByActor '100500'
-        assert storedBefore.size() == 2
+        assert storedBefore.size() == initialDebts.size()
 
         def me = new Actor(id: '100500')
         def body = gson.gson.toJson new DebtDeleteRequest(me: me, debtIdToDelete: storedBefore[1].id)
@@ -143,24 +160,41 @@ class DebtsControllerTest {
             .andExpect(jsonPath('$.result', is('deleted')))
 
         def storedAfter = debtRepo.findByActor '100500'
-        assert storedAfter.size() == 1
+        assert storedAfter.size() == 2
     }
 
     @Test
-    void 'test debt approval'() {
+    void 'test debt approval by dest'() {
         def storedBefore = debtRepo.findByActor '100500'
-        assert storedBefore.size() == 2
+        assert storedBefore.size() == initialDebts.size()
         assert !storedBefore[1].approvedByDest
 
         def me = new Actor(id: '100500')
         def body = gson.gson.toJson new DebtApprovalRequest(me: me, debtIdToApprove: storedBefore[1].id)
         mock.perform(post('/debt/approve').content(body).contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
-            .andExpect(jsonPath('$.result', is('approved')))
+            .andExpect(jsonPath('$.result', is('approved by dest')))
 
         def storedAfter = debtRepo.findByActor '100500'
-        assert storedAfter.size() == 2
+        assert storedAfter.size() == initialDebts.size()
         assert storedBefore[1].approvedByDest
+    }
+
+    @Test
+    void 'test debt approval by src'() {
+        def storedBefore = debtRepo.findByActor '100500'
+        assert storedBefore.size() == initialDebts.size()
+        assert !storedBefore[2].approvedBySrc
+
+        def me = new Actor(id: '100501')
+        def body = gson.gson.toJson new DebtApprovalRequest(me: me, debtIdToApprove: storedBefore[2].id)
+        mock.perform(post('/debt/approve').content(body).contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath('$.result', is('approved by src')))
+
+        def storedAfter = debtRepo.findByActor '100500'
+        assert storedAfter.size() == initialDebts.size()
+        assert storedBefore[2].approvedByDest
     }
 
     // negative tests
@@ -185,7 +219,7 @@ class DebtsControllerTest {
     @Test
     void 'test approve invalid request without `me`' () {
         def storedBefore = debtRepo.findByActor '100500'
-        assert storedBefore.size() == 2
+        assert storedBefore.size() == initialDebts.size()
         assert !storedBefore[1].approvedByDest
 
         def body = gson.gson.toJson new DebtApprovalRequest(me: null, debtIdToApprove: storedBefore[1].id)
@@ -197,7 +231,7 @@ class DebtsControllerTest {
     @Test
     void 'test approve invalid request without `debtIdToApprove`' () {
         def storedBefore = debtRepo.findByActor '100500'
-        assert storedBefore.size() == 2
+        assert storedBefore.size() == initialDebts.size()
         assert !storedBefore[1].approvedByDest
 
         def me = new Actor(id: '100500')
@@ -219,7 +253,7 @@ class DebtsControllerTest {
     @Test
     void 'test approval by src'() {
         def storedBefore = debtRepo.findByActor '100500'
-        assert storedBefore.size() == 2
+        assert storedBefore.size() == initialDebts.size()
         assert !storedBefore[1].approvedByDest
 
         def me = new Actor(id: '100501')
@@ -259,7 +293,7 @@ class DebtsControllerTest {
     void 'test delete approved debt'() {
         def me = new Actor(id: '100501')
         def storedBefore = debtRepo.findByActor '100500'
-        assert storedBefore.size() == 2
+        assert storedBefore.size() == initialDebts.size()
         assert storedBefore[0].approvedByDest && storedBefore[0].approvedBySrc
 
         def body = gson.gson.toJson new DebtDeleteRequest(me: me, debtIdToDelete: storedBefore[0].id)
@@ -271,7 +305,7 @@ class DebtsControllerTest {
     @Test
     void 'test delete debt by unrelated person'() {
         def storedBefore = debtRepo.findByActor '100500'
-        assert storedBefore.size() == 2
+        assert storedBefore.size() == initialDebts.size()
         assert !(storedBefore[1].approvedByDest && storedBefore[1].approvedBySrc)
 
         def me = new Actor(id: '9000')
@@ -279,6 +313,6 @@ class DebtsControllerTest {
         mock.perform(post('/debt/delete').content(body).contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(jsonPath('$.result', is('not deleted')))
-        assert debtRepo.findByActor('100500').size() == 2
+        assert debtRepo.findByActor('100500').size() == initialDebts.size()
     }
 }
