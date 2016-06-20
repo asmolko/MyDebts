@@ -22,14 +22,6 @@ apply plugin: 'spring-boot'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
-jacocoTestReport {
-    reports {
-        html.enabled = true
-        xml.enabled = true
-        csv.enabled = false
-    }
-}
-
 dependencyManagement {
     dependencies {
         dependency 'com.google.code.gson:gson:2.6.2' // override spring-boot preferred 2.3.1
@@ -54,4 +46,13 @@ dependencies {
     testCompile 'junit:junit'
     testCompile 'org.springframework.boot:spring-boot-starter-test'
     testCompile 'com.jayway.jsonpath:json-path:2.0.0'
+}
+
+jacocoTestReport {
+    dependsOn test
+
+    reports {
+        xml.enabled = true // coveralls plugin depends on xml format report
+        html.enabled = true
+    }
 }
