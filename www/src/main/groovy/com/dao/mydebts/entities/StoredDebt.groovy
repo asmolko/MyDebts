@@ -46,9 +46,6 @@ class StoredDebt {
     @Column
     boolean approvedByDest
 
-    @Column
-    String description
-
     Debt toDto() {
         return new Debt(
                 id: id,
