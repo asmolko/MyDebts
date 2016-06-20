@@ -1,5 +1,11 @@
+// community plugins
+plugins {
+    id 'com.github.kt3k.coveralls' version '2.6.3'
+}
+
+// central
 apply plugin: 'java'
-apply plugin: "jacoco"
+apply plugin: 'jacoco'
 
 dependencies {
     compile 'com.google.code.gson:gson:2.6.2'
@@ -14,6 +20,5 @@ jacocoTestReport {
     reports {
         html.enabled = true
         xml.enabled = true
-        csv.enabled = false
     }
 }

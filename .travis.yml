@@ -1,10 +1,13 @@
 language: groovy
 
 install: true
+cache:
+    directories:
+        - $HOME/.gradle
 
 script:
     - mv -v settings.gradle{.travis,}
-    - ./gradlew :mydebts-server:build
+    - ./gradlew build
 
 after_success:
     - ./gradlew jacocoTestReport coveralls
