@@ -1,5 +1,7 @@
 package com.dao.mydebts
 
+import com.dao.mydebts.dto.AuditLogRequest
+import com.dao.mydebts.dto.AuditLogResponse
 import com.dao.mydebts.dto.DebtApprovalRequest
 import com.dao.mydebts.dto.DebtCreationRequest
 import com.dao.mydebts.dto.DebtDeleteRequest
@@ -8,6 +10,7 @@ import com.dao.mydebts.dto.DebtsResponse
 import com.dao.mydebts.dto.GenericResponse
 import com.dao.mydebts.entities.StoredDebt
 import com.dao.mydebts.repos.StoredActorRepo
+import com.dao.mydebts.repos.StoredAuditEntryRepo
 import com.dao.mydebts.repos.StoredDebtRepo
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
@@ -38,6 +41,9 @@ class DebtsController {
 
     @Autowired
     private StoredActorRepo actorRepo
+
+    @Autowired
+    private StoredAuditEntryRepo auditRepo
 
     @Autowired
     private SettlementEngine settleEngine;
@@ -136,5 +142,10 @@ class DebtsController {
 
         debtRepo.delete debtToDelete
         return new GenericResponse(result: 'deleted')
+    }
+
+    @RequestMapping(value = "/auditLog", method = RequestMethod.POST)
+    AuditLogResponse auditForDebt(@RequestBody AuditLogRequest request) {
+        return null
     }
 }
