@@ -1,15 +1,15 @@
 package com.dao.mydebts.repos
 
-import com.dao.mydebts.entities.AuditEntry
+import com.dao.mydebts.entities.StoredAuditEntry
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 
 /**
- * Repository for managing {@link AuditEntry}s
+ * Repository for managing {@link StoredAuditEntry}s
  *
  * @author Oleg Chernovskiy
  */
 @Repository
-interface AuditEntryRepo extends JpaRepository<AuditEntry, String> {
+interface StoredAuditEntryRepo extends JpaRepository<StoredAuditEntry, String> {
 
 }

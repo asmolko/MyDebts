@@ -17,7 +17,7 @@ import javax.persistence.ManyToOne
  */
 @Entity
 @Canonical
-class AuditEntry {
+class StoredAuditEntry {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
