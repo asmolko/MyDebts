@@ -38,7 +38,7 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
 
     private final List<Contact> mContacts;
     private final Context mContext;
-    private boolean giveOrGet;
+    private RecyclerView mParentView;
 
     /**
      * Constructs new AccountsAdapter.
@@ -50,6 +50,11 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
     public AccountsAdapter(Context context, List<Contact> contacts) {
         this.mContacts = Collections.unmodifiableList(contacts);
         this.mContext = context;
+    }
+
+    @Override
+    public void onAttachedToRecyclerView(RecyclerView recyclerView) {
+        mParentView = recyclerView;
     }
 
     @Override
@@ -80,14 +85,6 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
         return mContacts.size();
     }
 
-    public void setGiveOrGet(boolean giveOrGet) {
-        this.giveOrGet = giveOrGet;
-    }
-
-    public boolean isGiveOrGet() {
-        return giveOrGet;
-    }
-
     class AccViewHolder extends RecyclerView.ViewHolder {
         private final ImageView badge;
         private final TextView name;
@@ -106,12 +103,13 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
             public void onClick(View v) {
                 final EditText input = new EditText(v.getContext());
                 final Contact who = mContacts.get(getLayoutPosition());
+                final boolean iAmDest = (boolean) mParentView.getTag();
                 input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
 
                 new AlertDialog.Builder(v.getContext())
                         .setView(input)
                         .setTitle(who.getDisplayName())
-                        .setMessage(isGiveOrGet() ? R.string.give_dialog_text : R.string.get_dialog_text)
+                        .setMessage(iAmDest ? R.string.give_dialog_text : R.string.get_dialog_text)
                         .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
@@ -124,8 +122,8 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
                                 // convert to app entities
                                 Debt toCreate = new Debt();
                                 toCreate.setDest(who.toActor());
-                                BigDecimal bigDecimal = new BigDecimal(amount);
-                                toCreate.setAmount(isGiveOrGet() ? bigDecimal.negate() : bigDecimal);
+                                BigDecimal parsed = new BigDecimal(amount);
+                                toCreate.setAmount(iAmDest ? parsed.negate() : parsed);
 
                                 // send back to activity
                                 DebtsListActivity casted = (DebtsListActivity) mContext;

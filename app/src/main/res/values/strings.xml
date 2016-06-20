@@ -15,8 +15,11 @@
     <string name="not_approved">Не подтверждено</string>
     <string name="approved">Подтверждено</string>
     <string name="you">Вы</string>
+    <string name="give_debt">Дать в долг</string>
+    <string name="get_debt">Взять в долг</string>
     <string name="delete">Удалить</string>
     <string name="approve_dialog_title">Подтверждение</string>
     <string name="approve_dialog_message">Подтверждаете долг?</string>
     <string name="give_dialog_text">Сколько дал?</string>
+    <string name="debts_menu">Меню долгов</string>
 </resources>
