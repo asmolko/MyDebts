@@ -24,13 +24,12 @@ public class ExampleUnitTest {
             "    \"id\": \"aef06198-f7be-4886-bf00-19045b2d48ea\"\n" +
             "  },\n" +
             "  \"amount\": 500,\n" +
-            "  \"created\": \"1970-01-01T03:00:00 +0300\",\n" +
-            "  \"approvedBySrc\": true,\n" +
+            "  \"created\": \"1970-01-01T00:00:00\",\n" +
+            "  \"approvedBySrc\": false,\n" +
             "  \"approvedByDest\": false\n" +
             "}";
 
     @Test
-    @Ignore
     public void gsonTest() throws Exception {
         Actor orderer = new Actor();
         orderer.setId("ebb558f9-3c16-4889-9603-d97dce150c15");
@@ -45,7 +44,7 @@ public class ExampleUnitTest {
         dInfo.setAmount(new BigDecimal(500));
 
         Gson marshaller = new GsonBuilder()
-                .setDateFormat("yyyy-MM-dd'T'HH:mm:ss Z")
+                .setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
                 .setPrettyPrinting().create();
         String json = marshaller.toJson(dInfo);
 
@@ -59,7 +58,6 @@ public class ExampleUnitTest {
             "}";
 
     @Test
-    @Ignore
     public void drequestTest() throws Exception {
         Actor me = new Actor();
         me.setId("ebb558f9-3c16-4889-9603-d97dce150c15");
