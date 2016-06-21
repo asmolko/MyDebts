@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <EditTextPreference
+        android:id="@+id/server_address_preference"
+        android:hint="@string/server_address_hint"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:key="server.address"
+        android:title="@string/server_address"
+        android:summary="@string/server_address_summary" />
+
+</PreferenceScreen>

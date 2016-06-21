@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">MyDebts</string>
-    <string name="action_settings">Настройки</string>
+    <string name="settings">Настройки</string>
     <string name="popup_menu">Контекстное меню</string>
     <string name="placeholder_date">10.05.2016</string>
     <string name="cannot_load_circles">Не удалось загрузить контакты из кругов :(</string>
@@ -22,4 +22,8 @@
     <string name="approve_dialog_message">Подтверждаете долг?</string>
     <string name="give_dialog_text">Сколько дал?</string>
     <string name="debts_menu">Меню долгов</string>
+    <string name="server_address">Адрес сервера</string>
+    <string name="server_address_summary">Вариант по умолчанию: sorseg.ru:1337</string>
+    <string name="server_address_hint"><![CDATA[<host.name>:<port>]]></string>
+    <string name="invalid_server_url">Некорректный URL сервера! Сброшено по умолчанию.</string>
 </resources>

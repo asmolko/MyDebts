@@ -7,15 +7,17 @@ import okhttp3.MediaType;
  */
 public class Constants {
 
-    //private static final String SERVER_ENDPOINT = "sorseg.ru:8080/debt/";
-    //private static final String SERVER_ENDPOINT = "http://demoth.no-ip.org:8080/debt/";
-    private static final String SERVER_ENDPOINT = "http://sorseg.ru:1337/debt/";
-    //private static final String SERVER_ENDPOINT = "http://192.168.1.165:1337/debt/";
+    // preferences-related
+    // @see xml/*_prefs.xml
+    public static final  String PREF_SERVER_ADDRESS = "server.address";
 
-    public static final String SERVER_ENDPOINT_DEBTS = SERVER_ENDPOINT + "debts";
-    public static final String SERVER_ENDPOINT_CREATE = SERVER_ENDPOINT + "createDebt";
-    public static final String SERVER_ENDPOINT_APPROVE = SERVER_ENDPOINT + "approve";
-    public static final String SERVER_ENDPOINT_DELETE = SERVER_ENDPOINT + "delete";
+    // network-related
+    public static final String DEFAULT_SERVER_ENDPOINT = "sorseg.ru:1337";
+
+    public static final String PATH_DEBTS = "debts";
+    public static final String PATH_CREATE = "createDebt";
+    public static final String PATH_APPROVE = "approve";
+    public static final String PATH_DELETE = "delete";
 
     public static final MediaType JSON_MIME_TYPE = MediaType.parse("application/json");
 
