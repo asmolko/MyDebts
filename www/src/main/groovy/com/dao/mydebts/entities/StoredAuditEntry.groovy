@@ -43,4 +43,16 @@ class StoredAuditEntry {
      */
     @ManyToOne
     StoredDebt settled
+
+    AuditEntry toDto() {
+        return new AuditEntry(created: created,
+                amount: amount,
+                debt: settled.toDto())
+    }
+
+    static StoredAuditEntry fromDto(AuditEntry dto) {
+        return new StoredAuditEntry(amount: dto.amount,
+                created: dto.created,
+                settled: StoredDebt.fromDto(dto.debt))
+    }
 }

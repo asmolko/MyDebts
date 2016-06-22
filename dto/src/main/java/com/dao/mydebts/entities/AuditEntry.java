@@ -11,6 +11,16 @@ public class AuditEntry {
 
     private BigDecimal amount;
 
+    private Debt debt;
+
+    public Debt getDebt() {
+        return debt;
+    }
+
+    public void setDebt(Debt debt) {
+        this.debt = debt;
+    }
+
     public Date getCreated() {
         return created;
     }
