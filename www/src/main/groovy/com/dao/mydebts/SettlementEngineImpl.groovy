@@ -1,7 +1,9 @@
 package com.dao.mydebts
 
-import com.dao.mydebts.entities.StoredActor;
-import com.dao.mydebts.entities.StoredDebt;
+import com.dao.mydebts.entities.StoredActor
+import com.dao.mydebts.entities.StoredAuditEntry;
+import com.dao.mydebts.entities.StoredDebt
+import com.dao.mydebts.repos.StoredAuditEntryRepo;
 import com.dao.mydebts.repos.StoredDebtRepo
 import groovy.transform.AutoClone
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +18,10 @@ import org.springframework.stereotype.Controller;
 class SettlementEngineImpl implements SettlementEngine {
 
     @Autowired
-    StoredDebtRepo sdRepo;
+    StoredDebtRepo sdRepo
+
+    @Autowired
+    StoredAuditEntryRepo auditEntryRepo
 
     @Override
     void relax(StoredDebt debt) {
@@ -33,8 +38,11 @@ class SettlementEngineImpl implements SettlementEngine {
     }
 
     private void settle(Path path) {
+        UUID uuid = UUID.randomUUID()
         path.chain.each {
             it.amount -= path.amount
+            auditEntryRepo.save(new StoredAuditEntry(amount: path.amount,
+                    created: new Date(), settled: it, settleId: uuid))
             sdRepo.saveAndFlush it
         }
     }
