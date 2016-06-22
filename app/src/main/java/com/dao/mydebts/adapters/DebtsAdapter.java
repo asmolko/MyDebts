@@ -240,12 +240,16 @@ public class DebtsAdapter extends RecyclerView.Adapter<DebtsAdapter.AccViewHolde
             pm.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
                 @Override
                 public boolean onMenuItemClick(MenuItem item) {
+                    DebtsListActivity casted = (DebtsListActivity) mContext;
+                    Handler bHandler = casted.getBackgroundHandler();
                     switch (item.getItemId()) {
                         case R.id.delete_debt:
-                            DebtsListActivity casted = (DebtsListActivity) mContext;
-                            Handler bHandler = casted.getBackgroundHandler();
-                            Message msg = Message.obtain(bHandler, DebtsListActivity.MSG_DELETE_DEBT, requested);
-                            bHandler.sendMessage(msg);
+                            Message del = Message.obtain(bHandler, DebtsListActivity.MSG_DELETE_DEBT, requested);
+                            bHandler.sendMessage(del);
+                            return true;
+                        case R.id.show_audit:
+                            Message audit = Message.obtain(bHandler, DebtsListActivity.MSG_AUDIT_DEBT, requested);
+                            bHandler.sendMessage(audit);
                             return true;
                     }
                     return false;

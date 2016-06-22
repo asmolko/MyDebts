@@ -46,6 +46,7 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/fab_margin"
         android:src="@drawable/ic_add_white_48dp"
+        android:visibility="invisible"
         custom:menu_fab_label="@string/debts_menu">
 
         <com.github.clans.fab.FloatingActionButton

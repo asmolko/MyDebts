@@ -107,6 +107,9 @@ public class ImageCache {
     }
 
     public void loadImage(String url, ImageView destination) {
+        if(TextUtils.isEmpty(url))
+            return;
+
         mImageLoader.loadImage(url, new BadgeCallback(destination));
     }
 

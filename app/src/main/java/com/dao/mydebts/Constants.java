@@ -18,6 +18,7 @@ public class Constants {
     public static final String PATH_CREATE = "createDebt";
     public static final String PATH_APPROVE = "approve";
     public static final String PATH_DELETE = "delete";
+    public static final String PATH_AUDIT = "auditLog";
 
     public static final MediaType JSON_MIME_TYPE = MediaType.parse("application/json");
 

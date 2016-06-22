@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">MyDebts</string>
     <string name="settings">Настройки</string>
+    <string name="audit">Аудит</string>
     <string name="popup_menu">Контекстное меню</string>
     <string name="placeholder_date">10.05.2016</string>
     <string name="cannot_load_circles">Не удалось загрузить контакты из кругов :(</string>

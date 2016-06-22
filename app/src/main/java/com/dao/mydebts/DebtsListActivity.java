@@ -14,6 +14,7 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
@@ -30,6 +31,8 @@ import android.widget.Toast;
 
 import com.dao.mydebts.adapters.AccountsAdapter;
 import com.dao.mydebts.adapters.DebtsAdapter;
+import com.dao.mydebts.dto.AuditLogRequest;
+import com.dao.mydebts.dto.AuditLogResponse;
 import com.dao.mydebts.dto.DebtApprovalRequest;
 import com.dao.mydebts.dto.DebtCreationRequest;
 import com.dao.mydebts.dto.DebtDeleteRequest;
@@ -79,13 +82,12 @@ public class DebtsListActivity extends AppCompatActivity {
     private static final int SIGN_IN_RETURN_CODE = 1050;
 
     public static final int MSG_CIRCLES_LOADED   = 0;
-    public static final int MSG_DEBTS_LOADED     = 1;
-    public static final int MSG_CREATE_DEBT      = 2;
-    public static final int MSG_DEBT_CREATED     = 3;
-    public static final int MSG_APPROVE_DEBT     = 4;
-    public static final int MSG_DEBT_APPROVED    = 5;
-    public static final int MSG_DELETE_DEBT      = 6;
-    public static final int MSG_DEBT_DELETED     = 7;
+    public static final int MSG_CREATE_DEBT      = 1;
+    public static final int MSG_DEBT_CREATED     = 2;
+    public static final int MSG_APPROVE_DEBT     = 3;
+    public static final int MSG_DELETE_DEBT      = 4;
+    public static final int MSG_AUDIT_DEBT       = 5;
+    public static final int MSG_AUDIT_LOADED     = 6;
 
     // GUI-related
     private RecyclerView mDebtList;
@@ -190,6 +192,7 @@ public class DebtsListActivity extends AppCompatActivity {
             }
 
             mDebtPersonList.setAdapter(new AccountsAdapter(this, forAdapter));
+            mFloatingMenu.showMenu(true);
             mProgress.animate().alpha(0.0f).setDuration(0).start();
             supportInvalidateOptionsMenu();
 
@@ -262,6 +265,7 @@ public class DebtsListActivity extends AppCompatActivity {
                 return true;
             case R.id.action_settings:
                 startActivity(new Intent(this, DebtsPrefActivity.class));
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -386,7 +390,7 @@ public class DebtsListActivity extends AppCompatActivity {
                 case MSG_CIRCLES_LOADED:
                     mProgress.animate().alpha(0.0f).setDuration(500).start();
                     supportInvalidateOptionsMenu();
-                    mFloatingMenu.showMenuButton(true);
+                    mFloatingMenu.showMenu(true);
 
                     // cache
                     List<Contact> forAdapter = new ArrayList<>(mContacts.values());
@@ -401,8 +405,15 @@ public class DebtsListActivity extends AppCompatActivity {
                     mDebtList.getAdapter().notifyItemInserted(0);
 
                     // hide contact list and FAM
-                    mFloatingMenu.hideMenu(true);
+                    mFloatingMenu.close(true);
                     toggleContactListVisibility();
+                    return true;
+                case MSG_AUDIT_LOADED:
+                    AuditLogResponse response = (AuditLogResponse) msg.obj;
+                    // response object is basically the list of log entries where our debt participated,
+                    // best to show it as a list
+                    AuditLogListFragment dialog = AuditLogListFragment.newInstance(response.getEntries());
+                    dialog.show(getSupportFragmentManager(), "Audit Log Dialog");
                     return true;
             }
 
@@ -545,6 +556,20 @@ public class DebtsListActivity extends AppCompatActivity {
                     GenericResponse gr = postServerRoundtrip(PATH_DELETE, ddr, GenericResponse.class);
                     if (gr != null && TextUtils.equals(gr.getResult(), "deleted")) {
                         getLoaderManager().getLoader(DEBT_REQUEST_LOADER).onContentChanged();
+                        return true;
+                    }
+                    return false;
+                }
+                case MSG_AUDIT_DEBT: {
+                    Debt toRequestAudit = (Debt) msg.obj;
+                    // enclose in request
+                    AuditLogRequest alr = new AuditLogRequest();
+                    alr.setDebtId(toRequestAudit.getId());
+                    alr.setMe(mCurrentPerson.toActor());
+
+                    AuditLogResponse answer = postServerRoundtrip(PATH_AUDIT, alr, AuditLogResponse.class);
+                    if (answer != null) {
+                        mUiHandler.sendMessage(Message.obtain(mUiHandler, MSG_AUDIT_LOADED, answer));
                         return true;
                     }
                     return false;
