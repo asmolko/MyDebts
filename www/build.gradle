@@ -13,7 +13,6 @@ plugins {
 apply plugin: 'idea'
 apply plugin: 'groovy'
 apply plugin: 'jacoco'
-apply plugin: 'application'
 apply plugin: 'spring-boot'
 
 version = '1.0'
