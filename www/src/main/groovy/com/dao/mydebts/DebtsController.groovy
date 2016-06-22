@@ -147,7 +147,7 @@ class DebtsController {
     @RequestMapping(value = "/auditLog", method = RequestMethod.POST)
     AuditLogResponse auditForDebt(@RequestBody AuditLogRequest request) {
         AuditLogResponse response = new AuditLogResponse(me: request.me)
-        response.entries = auditRepo.findByDebt(request.debtId).collect { it.toDto() }
+        response.entries = auditRepo.findByDebtId(request.debtId).collect { it.toDto() }
         return response
     }
 }

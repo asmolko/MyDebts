@@ -14,5 +14,5 @@ import org.springframework.stereotype.Repository
 @Repository
 interface StoredAuditEntryRepo extends JpaRepository<StoredAuditEntry, String> {
     @Query("select e from StoredAuditEntry e where e.settled.id = :id")
-    List<StoredAuditEntry> findByDebt(@Param("id") String debtId)
+    List<StoredAuditEntry> findByDebtId(@Param("id") String debtId)
 }

@@ -41,7 +41,7 @@ class SettlementEngineImpl implements SettlementEngine {
         UUID uuid = UUID.randomUUID()
         path.chain.each {
             it.amount -= path.amount
-            auditEntryRepo.save(new StoredAuditEntry(amount: path.amount,
+            auditEntryRepo.save(new StoredAuditEntry(amount: -path.amount,
                     created: new Date(), settled: it, settleId: uuid))
             sdRepo.saveAndFlush it
         }
