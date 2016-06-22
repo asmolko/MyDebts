@@ -5,6 +5,7 @@ import com.dao.mydebts.entities.Actor
 import com.dao.mydebts.entities.StoredActor
 import com.dao.mydebts.entities.StoredDebt
 import com.dao.mydebts.repos.StoredActorRepo
+import com.dao.mydebts.repos.StoredAuditEntryRepo
 import com.dao.mydebts.repos.StoredDebtRepo
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,6 +30,9 @@ class SettlementsEngineTest {
     StoredActorRepo actorRepo
 
     @Autowired
+    StoredAuditEntryRepo auditEntryRepo
+
+    @Autowired
     DebtsController controller
 
     @Test
@@ -51,6 +55,14 @@ class SettlementsEngineTest {
         assert d1.amount == 0.0
         assert d2.amount == 10.0
         assert d3.amount == 20.0
+
+        // check audit creation for every debt change
+        // TODO move to separate tests
+        [d1, d2, d3].each {
+            def audit = auditEntryRepo.findByDebtId(it.id)
+            assert audit.size() == 1
+            assert audit[0].amount == -10.0
+        }
     }
 
     @Test
@@ -90,5 +102,16 @@ class SettlementsEngineTest {
         assert ac.amount == 0.0
         assert cf.amount == 0.0
         assert fa.amount == 0.0
+
+        // check audit creation for every debt change
+        // TODO move to separate tests
+        [ab, bc, cd, de, ef, ac, cf].each {
+            def audit = auditEntryRepo.findByDebtId(it.id)
+            assert audit.size() == 1
+            assert audit[0].amount == -10.0
+        }
+        def audit = auditEntryRepo.findByDebtId(fa.id)
+        assert audit.size() == 2
+        assert audit.every { it.amount == -10.0 }
     }
 }

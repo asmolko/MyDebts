@@ -175,7 +175,7 @@ class DebtsControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath('$.result', is('approved by dest')))
 
-        def storedAfter = debtRepo.findByActor '100500'
+        def storedAfter = debtRepo.findAllByActor '100500'
         assert storedAfter.size() == initialDebts.size()
         assert storedBefore[1].approvedByDest
     }
@@ -192,7 +192,7 @@ class DebtsControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath('$.result', is('approved by src')))
 
-        def storedAfter = debtRepo.findByActor '100500'
+        def storedAfter = debtRepo.findAllByActor '100500'
         assert storedAfter.size() == initialDebts.size()
         assert storedBefore[2].approvedByDest
     }
