@@ -33,7 +33,11 @@ class SettlementEngineImpl implements SettlementEngine {
             if(!found)
                 break
 
+            // break cycle
             settle found
+
+            if(debt.amount == 0.0) // root debt depleted
+                break
         }
     }
 

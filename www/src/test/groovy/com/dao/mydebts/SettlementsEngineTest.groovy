@@ -114,4 +114,65 @@ class SettlementsEngineTest {
         assert audit.size() == 2
         assert audit.every { it.amount == -10.0 }
     }
+
+    @Test
+    void 'test two cycles where one depletes root debt'() {
+        StoredActor a = new StoredActor('a')
+        StoredActor b = new StoredActor('b')
+        StoredActor c = new StoredActor('c')
+        StoredActor d = new StoredActor('d') // this is Glenda
+        StoredActor e = new StoredActor('e')
+        StoredActor f = new StoredActor('f')
+        actorRepo.save([a, b, c, d, e, f])
+
+        // unfinished cycle 1
+        StoredDebt ab = new StoredDebt(src: a, dest: b, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt bc = new StoredDebt(src: b, dest: c, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt cd = new StoredDebt(src: c, dest: d, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt de = new StoredDebt(src: d, dest: e, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt ef = new StoredDebt(src: e, dest: f, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+
+        // unfinished cycle 2
+        StoredDebt ac = new StoredDebt(src: a, dest: c, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt cf = new StoredDebt(src: c, dest: f, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: true)
+
+        // root debt
+        StoredDebt fa = new StoredDebt(src: f, dest: a, amount: 12, created: new Date(), approvedBySrc: true, approvedByDest: false)
+        debtRepo.save([ab, bc, cd, de, ef, ac, cf, fa])
+
+        controller.approveDebt(new DebtApprovalRequest(me: new Actor('a'), debtIdToApprove: fa.id))
+
+        assert fa.approvedByDest
+
+        assert ab.amount == 0.0
+        assert bc.amount == 0.0
+        assert cd.amount == 0.0
+        assert de.amount == 0.0
+        assert ef.amount == 0.0
+        assert ac.amount == 8.0
+        assert cf.amount == 8.0
+        assert fa.amount == 0.0
+
+        // check audit creation for every debt change
+        // TODO move to separate tests
+
+        // first cycle will be closed fully
+        [ab, bc, cd, de, ef].each {
+            def audit = auditEntryRepo.findByDebtId(it.id)
+            assert audit.size() == 1
+            assert audit[0].amount == -10.0
+        }
+
+        // second will be closed partially
+        [ac, cf].each {
+            def audit = auditEntryRepo.findByDebtId(it.id)
+            assert audit.size() == 1
+            assert audit[0].amount == -2.0
+        }
+
+        // check root debt fully depleted
+        def audit = auditEntryRepo.findByDebtId(fa.id)
+        assert audit.size() == 2
+        assert audit.sum { it.amount } == -12.0
+    }
 }

@@ -1,5 +1,6 @@
 package com.dao.mydebts
 
+import com.dao.mydebts.dto.AuditLogRequest
 import com.dao.mydebts.dto.DebtApprovalRequest
 import com.dao.mydebts.dto.DebtCreationRequest
 import com.dao.mydebts.dto.DebtDeleteRequest;
@@ -7,11 +8,11 @@ import com.dao.mydebts.dto.DebtsRequest;
 import com.dao.mydebts.entities.Actor
 import com.dao.mydebts.entities.Debt
 import com.dao.mydebts.entities.StoredActor
+import com.dao.mydebts.entities.StoredAuditEntry
 import com.dao.mydebts.entities.StoredDebt
 import com.dao.mydebts.repos.StoredActorRepo
+import com.dao.mydebts.repos.StoredAuditEntryRepo
 import com.dao.mydebts.repos.StoredDebtRepo
-import org.h2.mvstore.db.MVTableEngine
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,6 +28,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext
 
+import static org.hamcrest.Matchers.contains
+import static org.hamcrest.Matchers.containsInAnyOrder
 import static org.hamcrest.Matchers.hasSize
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
@@ -57,6 +60,9 @@ class DebtsControllerTest {
     @Autowired
     StoredActorRepo actorRepo
 
+    @Autowired
+    StoredAuditEntryRepo auditRepo
+
     MockMvc mock
 
     Collection<StoredDebt> initialDebts
@@ -73,26 +79,27 @@ class DebtsControllerTest {
         def actor2 = new StoredActor(id: '100501')
         actorRepo.save([actor1, actor2])
 
-        StoredDebt debt1 = new StoredDebt(src: actor1,
-                                         dest: actor2,
-                                         amount: 500,
-                                         created: new Date(),
-                                         approvedBySrc: true,
-                                         approvedByDest: true)
+        // debts
+        def debt1 = new StoredDebt(src: actor1,
+                                   dest: actor2,
+                                   amount: 500,
+                                   created: new Date(),
+                                   approvedBySrc: true,
+                                   approvedByDest: true)
 
-        StoredDebt debt2 = new StoredDebt(src: actor2,
-                                         dest: actor1,
-                                         amount: 1500,
-                                         created: new Date(),
-                                         approvedBySrc: true,
-                                         approvedByDest: false)
+        def debt2 = new StoredDebt(src: actor2,
+                                   dest: actor1,
+                                   amount: 1500,
+                                   created: new Date(),
+                                   approvedBySrc: true,
+                                   approvedByDest: false)
 
-        StoredDebt debt3 = new StoredDebt(src: actor2,
-                                         dest: actor1,
-                                         amount: 1000,
-                                         created: new Date(),
-                                         approvedBySrc: false,
-                                         approvedByDest: true)
+        def debt3 = new StoredDebt(src: actor2,
+                                   dest: actor1,
+                                   amount: 1000,
+                                   created: new Date(),
+                                   approvedBySrc: false,
+                                   approvedByDest: true)
         initialDebts = [debt1, debt2, debt3]
         debtRepo.saveAndFlush debt1
         debtRepo.saveAndFlush debt2
@@ -314,5 +321,30 @@ class DebtsControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath('$.result', is('not deleted')))
         assert debtRepo.findByActor('100500').size() == initialDebts.size()
+    }
+
+    @Test
+    void 'test audit log retrieval'() {
+        def debt = initialDebts[0]
+        def audit11 = new StoredAuditEntry(settleId: UUID.randomUUID(),
+                created: new Date(),
+                amount: -50,
+                settled: debt)
+
+        def audit12 = new StoredAuditEntry(settleId: UUID.randomUUID(),
+                created: new Date(),
+                amount: -12,
+                settled: debt)
+        auditRepo.saveAndFlush audit11
+        auditRepo.saveAndFlush audit12
+
+        def me = new Actor(id: '100500')
+        def body = gson.gson.toJson new AuditLogRequest(me: me, debtId: debt.id)
+        mock.perform(post('/debt/auditLog').content(body).contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath('$.entries', hasSize(2)))
+                .andExpect(jsonPath('$.entries[*].amount', containsInAnyOrder(-12, -50)))
+                .andExpect(jsonPath('$.entries[*].debt.id', contains(debt.id, debt.id)))
+
     }
 }
