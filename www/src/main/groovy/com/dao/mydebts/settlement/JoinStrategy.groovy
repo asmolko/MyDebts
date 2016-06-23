@@ -25,11 +25,18 @@ class JoinStrategy implements SettlementStrategy {
     boolean relax(StoredDebt debt) {
         def all = sdRepo.findAllNotSettled()
         all.find { it.id != debt.id && it.src == debt.src && it.dest == debt.dest }.each {
-            auditEntryRepo.save(new StoredAuditEntry(amount: -debt.amount,
-                    created: new Date(), settled: it, settleId: UUID.randomUUID()))
-            sdRepo.saveAndFlush it
+            def uuid = UUID.randomUUID()
+
+            auditEntryRepo.save(new StoredAuditEntry(amount: +it.amount,
+                    created: new Date(), settled: it, settleId: uuid))
+            auditEntryRepo.save(new StoredAuditEntry(amount: -it.amount,
+                    created: new Date(), settled: debt, settleId: uuid))
+
             debt.amount += it.amount
             it.amount = 0.0
+
+            sdRepo.saveAndFlush debt
+            sdRepo.saveAndFlush it
         }
     }
 }
