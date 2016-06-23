@@ -5,13 +5,16 @@ import android.animation.Animator;
 import android.app.LoaderManager;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
@@ -28,6 +31,8 @@ import android.widget.Toast;
 
 import com.dao.mydebts.adapters.AccountsAdapter;
 import com.dao.mydebts.adapters.DebtsAdapter;
+import com.dao.mydebts.dto.AuditLogRequest;
+import com.dao.mydebts.dto.AuditLogResponse;
 import com.dao.mydebts.dto.DebtApprovalRequest;
 import com.dao.mydebts.dto.DebtCreationRequest;
 import com.dao.mydebts.dto.DebtDeleteRequest;
@@ -67,6 +72,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
+import static com.dao.mydebts.Constants.*;
 import static com.google.android.gms.common.GooglePlayServicesUtil.showErrorDialogFragment;
 
 public class DebtsListActivity extends AppCompatActivity {
@@ -76,13 +82,12 @@ public class DebtsListActivity extends AppCompatActivity {
     private static final int SIGN_IN_RETURN_CODE = 1050;
 
     public static final int MSG_CIRCLES_LOADED   = 0;
-    public static final int MSG_DEBTS_LOADED     = 1;
-    public static final int MSG_CREATE_DEBT      = 2;
-    public static final int MSG_DEBT_CREATED     = 3;
-    public static final int MSG_APPROVE_DEBT     = 4;
-    public static final int MSG_DEBT_APPROVED    = 5;
-    public static final int MSG_DELETE_DEBT      = 6;
-    public static final int MSG_DEBT_DELETED     = 7;
+    public static final int MSG_CREATE_DEBT      = 1;
+    public static final int MSG_DEBT_CREATED     = 2;
+    public static final int MSG_APPROVE_DEBT     = 3;
+    public static final int MSG_DELETE_DEBT      = 4;
+    public static final int MSG_AUDIT_DEBT       = 5;
+    public static final int MSG_AUDIT_LOADED     = 6;
 
     // GUI-related
     private RecyclerView mDebtList;
@@ -100,6 +105,16 @@ public class DebtsListActivity extends AppCompatActivity {
             .setDateFormat("yyyy-MM-dd'T'hh:mm:ssZ") // ISO 8601
             .create();
     private GoogleApiClient mGoogleApiClient;
+
+    // Preferences-related
+    /**
+     * Should be strong link - see {@link SharedPreferences#registerOnSharedPreferenceChangeListener}
+     */
+    private SharedPreferences.OnSharedPreferenceChangeListener mSharedPrefListener = new PrefChangeListener();
+    /**
+     * Currently active server sync endpoint
+     */
+    private String mServerEndpoint;
 
     // Custom
     /**
@@ -130,6 +145,12 @@ public class DebtsListActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_debt_list);
 
+        // preferences
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        prefs.registerOnSharedPreferenceChangeListener(mSharedPrefListener);
+        mServerEndpoint = prefs.getString(PREF_SERVER_ADDRESS, DEFAULT_SERVER_ENDPOINT);
+
+        // views
         mDebtList = (RecyclerView) findViewById(R.id.list);
         mDebtList.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
         DebtsAdapter adapter = new DebtsAdapter(this, mDebts, mContacts);
@@ -148,11 +169,13 @@ public class DebtsListActivity extends AppCompatActivity {
         mDebtPersonList = (RecyclerView) findViewById(R.id.debt_create_contact_list);
         mDebtPersonList.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
 
+        // background tasks
         HandlerThread thr = new HandlerThread("HttpBounce");
         thr.start();
         mBackgroundHandler = new Handler(thr.getLooper(), new BackgroundCallback());
         mUiHandler = new Handler(new UiCallback());
 
+        // startup init
         if (AccountHolder.isAccountNameSaved(this)) { // circles were already loaded
             String ourGoogleId = AccountHolder.getSavedGoogleId(this);
             List<Contact> forAdapter = SugarRecord.listAll(Contact.class);
@@ -169,6 +192,7 @@ public class DebtsListActivity extends AppCompatActivity {
             }
 
             mDebtPersonList.setAdapter(new AccountsAdapter(this, forAdapter));
+            mFloatingMenu.showMenu(true);
             mProgress.animate().alpha(0.0f).setDuration(0).start();
             supportInvalidateOptionsMenu();
 
@@ -178,7 +202,7 @@ public class DebtsListActivity extends AppCompatActivity {
             pickAccount();
         }
 
-        getLoaderManager().initLoader(Constants.DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
+        getLoaderManager().initLoader(DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
     }
 
     @Override
@@ -237,9 +261,10 @@ public class DebtsListActivity extends AppCompatActivity {
         int id = item.getItemId();
         switch (id) {
             case R.id.action_refresh_debts:
-                getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();
+                getLoaderManager().getLoader(DEBT_REQUEST_LOADER).onContentChanged();
                 return true;
             case R.id.action_settings:
+                startActivity(new Intent(this, DebtsPrefActivity.class));
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -269,7 +294,7 @@ public class DebtsListActivity extends AppCompatActivity {
                         DebtsRequest postData = new DebtsRequest();
                         postData.setMe(mCurrentPerson.toActor());
 
-                        DebtsResponse dr = postServerRoundtrip(Constants.SERVER_ENDPOINT_DEBTS, postData, DebtsResponse.class);
+                        DebtsResponse dr = postServerRoundtrip(PATH_DEBTS, postData, DebtsResponse.class);
                         if (dr != null && dr.getMe().getId().equals(mCurrentPerson.getGoogleId())) {
                             return dr.getDebts();
                         }
@@ -313,7 +338,7 @@ public class DebtsListActivity extends AppCompatActivity {
             Plus.PeopleApi.loadVisible(mGoogleApiClient, null).setResultCallback(this);
 
             // update visible debts
-            getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();
+            getLoaderManager().getLoader(DEBT_REQUEST_LOADER).onContentChanged();
         }
 
         @Override
@@ -365,7 +390,7 @@ public class DebtsListActivity extends AppCompatActivity {
                 case MSG_CIRCLES_LOADED:
                     mProgress.animate().alpha(0.0f).setDuration(500).start();
                     supportInvalidateOptionsMenu();
-                    mFloatingMenu.showMenuButton(true);
+                    mFloatingMenu.showMenu(true);
 
                     // cache
                     List<Contact> forAdapter = new ArrayList<>(mContacts.values());
@@ -380,8 +405,15 @@ public class DebtsListActivity extends AppCompatActivity {
                     mDebtList.getAdapter().notifyItemInserted(0);
 
                     // hide contact list and FAM
-                    mFloatingMenu.hideMenu(true);
+                    mFloatingMenu.close(true);
                     toggleContactListVisibility();
+                    return true;
+                case MSG_AUDIT_LOADED:
+                    AuditLogResponse response = (AuditLogResponse) msg.obj;
+                    // response object is basically the list of log entries where our debt participated,
+                    // best to show it as a list
+                    AuditLogListFragment dialog = AuditLogListFragment.newInstance(response.getEntries());
+                    dialog.show(getSupportFragmentManager(), "Audit Log Dialog");
                     return true;
             }
 
@@ -390,9 +422,9 @@ public class DebtsListActivity extends AppCompatActivity {
     }
 
     @Nullable
-    private <REQ, RESP> RESP postServerRoundtrip(String endpoint, REQ request, Class<RESP> respClass) {
+    private <REQ, RESP> RESP postServerRoundtrip(String pathSuffix, REQ request, Class<RESP> respClass) {
         Request postQuery = new Request.Builder()
-                .url(endpoint)
+                .url(String.format("http://%s/debt/%s", mServerEndpoint, pathSuffix))
                 .post(RequestBody.create(Constants.JSON_MIME_TYPE, mJsonSerializer.toJson(request)))
                 .build();
 
@@ -483,7 +515,7 @@ public class DebtsListActivity extends AppCompatActivity {
                     DebtCreationRequest dcr = new DebtCreationRequest();
                     dcr.setCreated(toCreate);
 
-                    GenericResponse gr = postServerRoundtrip(Constants.SERVER_ENDPOINT_CREATE, dcr, GenericResponse.class);
+                    GenericResponse gr = postServerRoundtrip(PATH_CREATE, dcr, GenericResponse.class);
                     if (gr != null && TextUtils.equals(gr.getResult(), "created")) {
                         toCreate.setId(gr.getNewId());
                         Message toUi = Message.obtain(msg);
@@ -501,7 +533,7 @@ public class DebtsListActivity extends AppCompatActivity {
                     dar.setDebtIdToApprove(toApprove.getId());
                     dar.setMe(mCurrentPerson.toActor());
 
-                    GenericResponse gr = postServerRoundtrip(Constants.SERVER_ENDPOINT_APPROVE, dar, GenericResponse.class);
+                    GenericResponse gr = postServerRoundtrip(PATH_APPROVE, dar, GenericResponse.class);
                     if (gr != null && TextUtils.equals(gr.getResult(), "approved")) {
                         if (Objects.equals(dar.getMe().getId(), toApprove.getSrc().getId())) {
                             toApprove.setApprovedBySrc(true);
@@ -509,7 +541,7 @@ public class DebtsListActivity extends AppCompatActivity {
                         if (Objects.equals(dar.getMe().getId(), toApprove.getDest().getId())) {
                             toApprove.setApprovedByDest(true);
                         }
-                        getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();
+                        getLoaderManager().getLoader(DEBT_REQUEST_LOADER).onContentChanged();
                         return true;
                     }
                     return false;
@@ -521,9 +553,23 @@ public class DebtsListActivity extends AppCompatActivity {
                     ddr.setDebtIdToDelete(toDelete.getId());
                     ddr.setMe(mCurrentPerson.toActor());
 
-                    GenericResponse gr = postServerRoundtrip(Constants.SERVER_ENDPOINT_DELETE, ddr, GenericResponse.class);
+                    GenericResponse gr = postServerRoundtrip(PATH_DELETE, ddr, GenericResponse.class);
                     if (gr != null && TextUtils.equals(gr.getResult(), "deleted")) {
-                        getLoaderManager().getLoader(Constants.DEBT_REQUEST_LOADER).onContentChanged();
+                        getLoaderManager().getLoader(DEBT_REQUEST_LOADER).onContentChanged();
+                        return true;
+                    }
+                    return false;
+                }
+                case MSG_AUDIT_DEBT: {
+                    Debt toRequestAudit = (Debt) msg.obj;
+                    // enclose in request
+                    AuditLogRequest alr = new AuditLogRequest();
+                    alr.setDebtId(toRequestAudit.getId());
+                    alr.setMe(mCurrentPerson.toActor());
+
+                    AuditLogResponse answer = postServerRoundtrip(PATH_AUDIT, alr, AuditLogResponse.class);
+                    if (answer != null) {
+                        mUiHandler.sendMessage(Message.obtain(mUiHandler, MSG_AUDIT_LOADED, answer));
                         return true;
                     }
                     return false;
@@ -554,6 +600,22 @@ public class DebtsListActivity extends AppCompatActivity {
             // contact list is visible but we closed the menu, hide it too
             if(!opened && mDebtAddForm.getVisibility() == View.VISIBLE) {
                 toggleContactListVisibility();
+            }
+        }
+    }
+
+    /**
+     * Listens for preferences changes and applies them to needed parts.
+     * @see DebtsPrefActivity
+     */
+    private class PrefChangeListener implements SharedPreferences.OnSharedPreferenceChangeListener {
+
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+            switch (key) {
+                case PREF_SERVER_ADDRESS:
+                    mServerEndpoint = sharedPreferences.getString(key, DEFAULT_SERVER_ENDPOINT);
+                    return;
             }
         }
     }
