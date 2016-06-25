@@ -46,7 +46,7 @@ class DebtsController {
     private StoredAuditEntryRepo auditRepo
 
     @Autowired
-    private SettlementEngine settleEngine;
+    private SettlementEngine settleEngine
 
     /**
      * Queries database for debts related to current person
