@@ -1,6 +1,6 @@
 package com.dao.mydebts.entities;
 
-import com.dao.mydebts.SettlementEngine
+import com.dao.mydebts.settlement.SettlementEngine
 import groovy.transform.Canonical
 
 import javax.persistence.Column

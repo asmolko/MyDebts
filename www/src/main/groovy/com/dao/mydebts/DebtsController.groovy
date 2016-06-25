@@ -12,6 +12,7 @@ import com.dao.mydebts.entities.StoredDebt
 import com.dao.mydebts.repos.StoredActorRepo
 import com.dao.mydebts.repos.StoredAuditEntryRepo
 import com.dao.mydebts.repos.StoredDebtRepo
+import com.dao.mydebts.settlement.SettlementEngine
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.transaction.annotation.Propagation

@@ -16,6 +16,8 @@ import org.springframework.test.annotation.Rollback
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner
 import org.springframework.transaction.annotation.Transactional
 
+import static java.lang.Math.abs
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = Application.class)
 @WebIntegrationTest(["spring.datasource.url=jdbc:h2:mem:spec;DB_CLOSE_DELAY=0;MVCC=TRUE;LOCK_MODE=1"])
@@ -174,5 +176,43 @@ class SettlementsEngineTest {
         def audit = auditEntryRepo.findByDebtId(fa.id)
         assert audit.size() == 2
         assert audit.sum { it.amount } == -12.0
+    }
+
+    @Test
+    void 'test two debts with the same src and dest approved by src'() {
+        StoredActor a = new StoredActor('Adityavardhana')
+        StoredActor b = new StoredActor('Balachandrav')
+        actorRepo.save([a, b])
+
+        StoredDebt ab1 = new StoredDebt(src: a, dest: b, amount: 12, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt ab2 = new StoredDebt(src: a, dest: b, amount: 10, created: new Date(), approvedBySrc: false, approvedByDest: true)
+
+        debtRepo.save([ab1, ab2])
+
+        controller.approveDebt(new DebtApprovalRequest(me: new Actor('Adityavardhana'), debtIdToApprove: ab2.id))
+
+        assert ab2.approvedBySrc
+
+        assert ab1.amount + ab2.amount == 22.0
+        assert abs(ab1.amount - ab2.amount) == 22.0
+    }
+
+    @Test
+    void 'test two debts with the same src and dest approved by dest'() {
+        StoredActor a = new StoredActor('Adityavardhana')
+        StoredActor b = new StoredActor('Balachandrav')
+        actorRepo.save([a, b])
+
+        StoredDebt ab1 = new StoredDebt(src: a, dest: b, amount: 12, created: new Date(), approvedBySrc: true, approvedByDest: true)
+        StoredDebt ab2 = new StoredDebt(src: a, dest: b, amount: 10, created: new Date(), approvedBySrc: true, approvedByDest: false)
+
+        debtRepo.save([ab1, ab2])
+
+        controller.approveDebt(new DebtApprovalRequest(me: new Actor('Balachandrav'), debtIdToApprove: ab2.id))
+
+        assert ab2.approvedByDest
+
+        assert ab1.amount + ab2.amount == 22.0
+        assert abs(ab1.amount - ab2.amount) == 22.0
     }
 }

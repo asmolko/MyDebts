@@ -1,13 +1,13 @@
-package com.dao.mydebts
+package com.dao.mydebts.settlement
 
 import com.dao.mydebts.entities.StoredActor
-import com.dao.mydebts.entities.StoredAuditEntry;
+import com.dao.mydebts.entities.StoredAuditEntry
 import com.dao.mydebts.entities.StoredDebt
-import com.dao.mydebts.repos.StoredAuditEntryRepo;
+import com.dao.mydebts.repos.StoredAuditEntryRepo
 import com.dao.mydebts.repos.StoredDebtRepo
 import groovy.transform.AutoClone
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Controller
 
 /**
  * Engine implementation based on simple DFS
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Controller;
  * @author Oleg Chernovskiy
  */
 @Controller
-class SettlementEngineImpl implements SettlementEngine {
+class CycleStrategy implements SettlementStrategy {
 
     @Autowired
     StoredDebtRepo sdRepo
@@ -24,21 +24,17 @@ class SettlementEngineImpl implements SettlementEngine {
     StoredAuditEntryRepo auditEntryRepo
 
     @Override
-    void relax(StoredDebt debt) {
+    boolean relax(StoredDebt debt) {
         def root = debt.src
-        while (true) {
-            def start = new Path(chain: [debt], amount: debt.amount)
-            def all = sdRepo.findAllNotSettled()
-            def found = findCycle root, start, all - debt
-            if(!found)
-                break
+        def start = new Path(chain: [debt], amount: debt.amount)
+        def all = sdRepo.findAllNotSettled()
+        def found = findCycle root, start, all - debt
+        if (!found)
+            return false
 
-            // break cycle
-            settle found
-
-            if(debt.amount == 0.0) // root debt depleted
-                break
-        }
+        // break cycle
+        settle found
+        return true
     }
 
     private void settle(Path path) {
