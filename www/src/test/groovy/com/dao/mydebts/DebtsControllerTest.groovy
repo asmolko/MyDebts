@@ -101,9 +101,7 @@ class DebtsControllerTest {
                                    approvedBySrc: false,
                                    approvedByDest: true)
         initialDebts = [debt1, debt2, debt3]
-        debtRepo.saveAndFlush debt1
-        debtRepo.saveAndFlush debt2
-        debtRepo.saveAndFlush debt3
+        debtRepo.save(initialDebts)
     }
 
     // positive tests

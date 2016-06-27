@@ -20,7 +20,7 @@ interface StoredDebtRepo extends JpaRepository<StoredDebt, String> {
      * @param id ID of the actor to query for
      * @return list of active debts
      */
-    @Query("select d from StoredDebt d where d.amount != 0.0 and d.src.id = :id or d.dest.id = :id")
+    @Query("select d from StoredDebt d where d.amount != 0.0 and (d.src.id = :id or d.dest.id = :id)")
     List<StoredDebt> findByActor(@Param("id") String id)
 
     /**
