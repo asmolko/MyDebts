@@ -25,6 +25,8 @@ class CycleStrategy implements SettlementStrategy {
 
     @Override
     boolean relax(StoredDebt debt) {
+        if (debt.amount == 0.0) // root debt depleted
+            return
         def root = debt.src
         def start = new Path(chain: [debt], amount: debt.amount)
         def all = sdRepo.findAllNotSettled()

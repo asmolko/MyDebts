@@ -18,8 +18,6 @@ class SettlementEngineImpl implements SettlementEngine {
     @Override
     void relax(StoredDebt debt) {
         while (true) {
-            if (debt.amount == 0.0) // root debt depleted
-                return
             def entries = strategies.collectEntries { [(it): it.relax(debt)] }
             if (!entries.find { k, v -> v })
                 return
