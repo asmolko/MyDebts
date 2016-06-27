@@ -6,6 +6,8 @@ import com.dao.mydebts.entities.StoredDebt
 import com.dao.mydebts.repos.StoredAuditEntryRepo
 import com.dao.mydebts.repos.StoredDebtRepo
 import groovy.transform.AutoClone
+import groovy.transform.Canonical
+import groovy.util.logging.Log4j
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Controller
 
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Controller
  * @author Oleg Chernovskiy
  */
 @Controller
+@Log4j
 class CycleStrategy implements SettlementStrategy {
 
     @Autowired
@@ -25,17 +28,22 @@ class CycleStrategy implements SettlementStrategy {
 
     @Override
     boolean relax(StoredDebt debt) {
+        log.error "Starting $debt relaxation"
         if (debt.amount == 0.0) // root debt depleted
             return
         def root = debt.src
         def start = new Path(chain: [debt], amount: debt.amount)
         def all = sdRepo.findAllNotSettled()
+        log.error "Found $all.size not empty debts"
         def found = findCycle root, start, all - debt
-        if (!found)
+        if (!found) {
+            log.error "No cycles found for $debt"
             return false
-
+        }
+        log.error "Found $found cycle"
         // break cycle
         settle found
+        log.error "Cycle after relax: $found"
         return true
     }
 
@@ -77,6 +85,7 @@ class CycleStrategy implements SettlementStrategy {
      * Class tracking recursion depth and minimal amount across found cycle
      */
     @AutoClone
+    @Canonical
     class Path {
         LinkedList<StoredDebt> chain
         BigDecimal amount
