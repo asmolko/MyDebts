@@ -4,6 +4,7 @@ import com.dao.mydebts.entities.StoredAuditEntry
 import com.dao.mydebts.entities.StoredDebt
 import com.dao.mydebts.repos.StoredAuditEntryRepo
 import com.dao.mydebts.repos.StoredDebtRepo
+import groovy.util.logging.Log4j
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Controller
 
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Controller
  * @author Alexander Smolko
  */
 @Controller
+@Log4j
 class JoinStrategy implements SettlementStrategy {
 
     @Autowired
@@ -23,8 +25,15 @@ class JoinStrategy implements SettlementStrategy {
 
     @Override
     boolean relax(StoredDebt debt) {
+        log.error "Starting $debt relaxation"
         def all = sdRepo.findAllNotSettled()
-        all.find { it.id != debt.id && it.src == debt.src && it.dest == debt.dest }.each {
+        log.error "Found $all.size not empty debts"
+
+        def sameDirectionDebts = all.find {
+            it.id != debt.id && it.src == debt.src && it.dest == debt.dest
+        }
+        log.error "Found $sameDirectionDebts"
+        sameDirectionDebts.each {
             def uuid = UUID.randomUUID()
 
             auditEntryRepo.save(new StoredAuditEntry(amount: +it.amount,
