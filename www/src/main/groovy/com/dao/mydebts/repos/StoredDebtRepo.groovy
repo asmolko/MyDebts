@@ -33,6 +33,6 @@ interface StoredDebtRepo extends JpaRepository<StoredDebt, String> {
 
     List<StoredDebt> findBySrc(StoredActor src)
 
-    @Query("select d from StoredDebt d where d.amount != 0.0")
+    @Query("select d from StoredDebt d where d.amount != 0.0 and d.approvedBySrc = true and d.approvedByDest = true")
     List<StoredDebt> findAllNotSettled()
 }

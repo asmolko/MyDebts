@@ -84,4 +84,14 @@ class StorageTest {
             assert it.amount > 0
         }
     }
+
+    @Test
+    void 'test repo query for non settled debts does unapproved debts'() {
+        def settled = debtRepo.findAllNotSettled()
+        assert !settled.empty
+        settled.each {
+            assert it.approvedByDest
+            assert it.approvedBySrc
+        }
+    }
 }
