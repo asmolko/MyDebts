@@ -28,22 +28,23 @@ class CycleStrategy implements SettlementStrategy {
 
     @Override
     boolean relax(StoredDebt debt) {
-        log.error "Starting $debt relaxation"
+        log.debug "Starting $debt relaxation"
         if (debt.amount == 0.0) // root debt depleted
-            return
+            return false
+
         def root = debt.src
         def start = new Path(chain: [debt], amount: debt.amount)
         def all = sdRepo.findAllNotSettled()
-        log.error "Found $all.size not empty debts"
+        log.trace "Found $all.size not empty debts"
         def found = findCycle root, start, all - debt
         if (!found) {
-            log.error "No cycles found for $debt"
+            log.trace "No cycles found for $debt"
             return false
         }
-        log.error "Found $found cycle"
+        log.trace "Found cycle: $found"
         // break cycle
         settle found
-        log.error "Cycle after relax: $found"
+        log.trace "Cycle after relax: $found"
         return true
     }
 

@@ -25,14 +25,14 @@ class JoinStrategy implements SettlementStrategy {
 
     @Override
     boolean relax(StoredDebt debt) {
-        log.error "Starting $debt relaxation"
+        log.debug "Starting $debt relaxation"
         def all = sdRepo.findAllNotSettled()
-        log.error "Found $all.size not empty debts"
+        log.trace "Found $all.size non-empty debts"
 
         def sameDirectionDebts = all.find {
             it.id != debt.id && it.src == debt.src && it.dest == debt.dest
         }
-        log.error "Found $sameDirectionDebts"
+        log.trace "Found $sameDirectionDebts"
         sameDirectionDebts.each {
             def uuid = UUID.randomUUID()
 

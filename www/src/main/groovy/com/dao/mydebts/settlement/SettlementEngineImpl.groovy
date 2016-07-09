@@ -19,16 +19,16 @@ class SettlementEngineImpl implements SettlementEngine {
 
     @Override
     void relax(StoredDebt debt) {
-        log.error "Starting $debt relaxation"
+        log.info "Starting $debt relaxation"
         while (true) {
             def entries = strategies.collectEntries { [(it): it.relax(debt)] }
 
             def relaxed = entries.find { k, v -> v }
             if (!relaxed) {
-                log.error "All strategies returned false => nothing more to relax"
+                log.info "All strategies returned false => nothing more to relax"
                 return
             }
-            log.error "Next strategies relaxed: $relaxed.key"
+            log.info "Next strategies relaxed: $relaxed.key"
         }
     }
 }
