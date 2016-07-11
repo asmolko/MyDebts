@@ -1,8 +1,20 @@
 apply plugin: 'com.android.application'
 
+repositories {
+    maven { url "https://jitpack.io" }
+}
+
 android {
     signingConfigs {
         DebugConfig {
+            keyAlias 'debts-key'
+            keyPassword 'pam pam pam'
+            storeFile file('../../debts-debug.keystore')
+            storePassword 'pam pam pam'
+        }
+
+        // TODO: do we need another key?
+        ReleaseConfig {
             keyAlias 'debts-key'
             keyPassword 'pam pam pam'
             storeFile file('../../debts-debug.keystore')
@@ -13,7 +25,7 @@ android {
     buildToolsVersion "23.0.3"
     defaultConfig {
         applicationId "com.dao.mydebts"
-        minSdkVersion 21
+        minSdkVersion 15
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
@@ -21,7 +33,7 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.ReleaseConfig
         }
         debug {
             minifyEnabled false
@@ -56,6 +68,8 @@ dependencies {
     compile 'com.github.satyan:sugar:1.5'
     // Floating action button with menu
     compile 'com.github.clans:fab:1.6.4'
+    // circular reveal for pre-lollipop
+    compile ('com.github.ozodrukh:CircularReveal:2.0.1@aar') { transitive = true }
 
     testCompile 'junit:junit:4.12'
 }

@@ -2,6 +2,8 @@ package com.dao.mydebts;
 
 import android.accounts.AccountManager;
 import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
 import android.app.LoaderManager;
 import android.content.Intent;
 import android.content.Loader;
@@ -14,7 +16,6 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.LinearLayoutManager;
@@ -25,7 +26,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.ViewAnimationUtils;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
@@ -65,8 +65,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
-import java.util.Objects;
 
+import io.codetail.animation.ViewAnimationUtils;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -159,7 +159,7 @@ public class DebtsListActivity extends AppCompatActivity {
         mProgress = (ProgressBar) findViewById(R.id.loader);
 
         mFloatingMenu = (FloatingActionMenu) findViewById(R.id.floating_menu);
-        mFloatingMenu.setOnMenuToggleListener(new FamClickListener());
+        mFloatingMenu.setOnMenuButtonClickListener(new FamClickListener());
         mFloatingGetButton = (FloatingActionButton) findViewById(R.id.floating_get_button);
         mFloatingGetButton.setOnClickListener(new FabClickListener(false));
         mFloatingGiveButton = (FloatingActionButton) findViewById(R.id.floating_give_button);
@@ -213,7 +213,7 @@ public class DebtsListActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mBackgroundHandler.getLooper().quitSafely();
+        mBackgroundHandler.getLooper().quit();
     }
 
     //can also be used for account change
@@ -405,7 +405,6 @@ public class DebtsListActivity extends AppCompatActivity {
                     mDebtList.getAdapter().notifyItemInserted(0);
 
                     // hide contact list and FAM
-                    mFloatingMenu.close(true);
                     toggleContactListVisibility();
                     return true;
                 case MSG_AUDIT_LOADED:
@@ -464,25 +463,10 @@ public class DebtsListActivity extends AppCompatActivity {
                     mDebtAddForm.getRight(),
                     Math.max(mDebtAddForm.getWidth(), mDebtAddForm.getHeight()) * 2,
                     0);
-            cr.addListener(new Animator.AnimatorListener() {
-                @Override
-                public void onAnimationStart(Animator animation) {
-
-                }
-
+            cr.addListener(new AnimatorListenerAdapter() {
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     mDebtAddForm.setVisibility(View.INVISIBLE);
-                }
-
-                @Override
-                public void onAnimationCancel(Animator animation) {
-
-                }
-
-                @Override
-                public void onAnimationRepeat(Animator animation) {
-
                 }
             });
             cr.start();
@@ -535,10 +519,10 @@ public class DebtsListActivity extends AppCompatActivity {
 
                     GenericResponse gr = postServerRoundtrip(PATH_APPROVE, dar, GenericResponse.class);
                     if (gr != null && TextUtils.equals(gr.getResult(), "approved")) {
-                        if (Objects.equals(dar.getMe().getId(), toApprove.getSrc().getId())) {
+                        if (TextUtils.equals(dar.getMe().getId(), toApprove.getSrc().getId())) {
                             toApprove.setApprovedBySrc(true);
                         }
-                        if (Objects.equals(dar.getMe().getId(), toApprove.getDest().getId())) {
+                        if (TextUtils.equals(dar.getMe().getId(), toApprove.getDest().getId())) {
                             toApprove.setApprovedByDest(true);
                         }
                         getLoaderManager().getLoader(DEBT_REQUEST_LOADER).onContentChanged();
@@ -590,17 +574,32 @@ public class DebtsListActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             mDebtPersonList.setTag(iAmDest);
+            mFloatingMenu.setIconAnimated(false);
+            mFloatingMenu.close(true);
             toggleContactListVisibility();
         }
     }
 
-    private class FamClickListener implements FloatingActionMenu.OnMenuToggleListener {
+    private class FamClickListener implements OnClickListener {
+
         @Override
-        public void onMenuToggle(boolean opened) {
-            // contact list is visible but we closed the menu, hide it too
-            if(!opened && mDebtAddForm.getVisibility() == View.VISIBLE) {
+        public void onClick(View v) {
+            // special case when view is shown and we just want to hide it
+            if (!mFloatingMenu.isOpened() && mDebtAddForm.getVisibility() == View.VISIBLE) {
+                mFloatingMenu.setIconAnimated(true);
+                ObjectAnimator collapseAnimator = ObjectAnimator.ofFloat(
+                        mFloatingMenu.getMenuIconView(),
+                        "rotation",
+                        mFloatingMenu.getMenuIconView().getRotation(),
+                        0
+                );
+                collapseAnimator.start();
                 toggleContactListVisibility();
+                return;
             }
+
+            // otherwise normal operation
+            mFloatingMenu.toggle(true);
         }
     }
 
