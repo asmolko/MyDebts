@@ -27,6 +27,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ProgressBar;
+import android.widget.SearchView;
 import android.widget.Toast;
 
 import com.dao.mydebts.adapters.AccountsAdapter;
@@ -81,23 +82,25 @@ public class DebtsListActivity extends AppCompatActivity {
 
     private static final int SIGN_IN_RETURN_CODE = 1050;
 
-    public static final int MSG_CIRCLES_LOADED   = 0;
-    public static final int MSG_CREATE_DEBT      = 1;
-    public static final int MSG_DEBT_CREATED     = 2;
-    public static final int MSG_APPROVE_DEBT     = 3;
-    public static final int MSG_DELETE_DEBT      = 4;
-    public static final int MSG_AUDIT_DEBT       = 5;
-    public static final int MSG_AUDIT_LOADED     = 6;
+    public static final int MSG_CIRCLES_LOADED   = 0; // emitted once G+ circles are loaded from network
+    public static final int MSG_CREATE_DEBT      = 1; // emitted once we call debt creation after entering amount
+    public static final int MSG_DEBT_CREATED     = 2; // emitted after server responded to former with success
+    public static final int MSG_APPROVE_DEBT     = 3; // emitted once we call debt approval after confirm dialog
+    public static final int MSG_DELETE_DEBT      = 4; // emitted once we call debt deletion from popup menu
+    public static final int MSG_AUDIT_DEBT       = 5; // emitted once we call debt audit from popup menu
+    public static final int MSG_AUDIT_LOADED     = 6; // emitted after server responded to former with success
 
     // GUI-related
     private RecyclerView mDebtList;
     private ProgressBar mProgress;
     private FloatingActionMenu mFloatingMenu;
+    private FamClickListener mMenuClickListener;
     private FloatingActionButton mFloatingGetButton;
     private FloatingActionButton mFloatingGiveButton;
 
     private CardView mDebtAddForm;
-    private RecyclerView mDebtPersonList;
+    private RecyclerView mPersonList;
+    private SearchView mPersonFilter;
 
     // Network-related
     private OkHttpClient mHttpClient = new OkHttpClient();
@@ -159,15 +162,18 @@ public class DebtsListActivity extends AppCompatActivity {
         mProgress = (ProgressBar) findViewById(R.id.loader);
 
         mFloatingMenu = (FloatingActionMenu) findViewById(R.id.floating_menu);
-        mFloatingMenu.setOnMenuButtonClickListener(new FamClickListener());
+        mMenuClickListener = new FamClickListener();
+        mFloatingMenu.setOnMenuButtonClickListener(mMenuClickListener);
         mFloatingGetButton = (FloatingActionButton) findViewById(R.id.floating_get_button);
         mFloatingGetButton.setOnClickListener(new FabClickListener(false));
         mFloatingGiveButton = (FloatingActionButton) findViewById(R.id.floating_give_button);
         mFloatingGiveButton.setOnClickListener(new FabClickListener(true));
 
         mDebtAddForm = (CardView) findViewById(R.id.debt_create_form);
-        mDebtPersonList = (RecyclerView) findViewById(R.id.debt_create_contact_list);
-        mDebtPersonList.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
+        mPersonList = (RecyclerView) findViewById(R.id.debt_create_contact_list);
+        mPersonList.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
+        mPersonFilter = (SearchView) findViewById(R.id.debt_create_search_edit);
+        mPersonFilter.setOnQueryTextListener(new AccountFilter());
 
         // background tasks
         HandlerThread thr = new HandlerThread("HttpBounce");
@@ -175,34 +181,44 @@ public class DebtsListActivity extends AppCompatActivity {
         mBackgroundHandler = new Handler(thr.getLooper(), new BackgroundCallback());
         mUiHandler = new Handler(new UiCallback());
 
-        // startup init
-        if (AccountHolder.isAccountNameSaved(this)) { // circles were already loaded
-            String ourGoogleId = AccountHolder.getSavedGoogleId(this);
-            List<Contact> forAdapter = SugarRecord.listAll(Contact.class);
-            ListIterator<Contact> itr = forAdapter.listIterator();
+        initGoogleAccount();
+        getLoaderManager().initLoader(DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
+    }
 
-            // remove us from list, also populate contacts map
-            while (itr.hasNext()) {
-                Contact c = itr.next();
-                mContacts.put(c.getGoogleId(), c);
-                if (c.getGoogleId().equals(ourGoogleId)) {
-                    mCurrentPerson = c;
-                    itr.remove();
-                }
-            }
-
-            mDebtPersonList.setAdapter(new AccountsAdapter(this, forAdapter));
-            mFloatingMenu.showMenu(true);
-            mProgress.animate().alpha(0.0f).setDuration(0).start();
-            supportInvalidateOptionsMenu();
-
-//            todo move to settings or some other manual action
-//            requestVisiblePeople(AccountHolder.getSavedAccountName(this));
-        } else {
+    private void initGoogleAccount() {
+        if (!AccountHolder.isAccountNameSaved(this)) {
             pickAccount();
+            return;
         }
 
-        getLoaderManager().initLoader(DEBT_REQUEST_LOADER, null, new LoadDebtsCallback());
+        // circles were already loaded
+        String ourGoogleId = AccountHolder.getSavedGoogleId(this);
+        List<Contact> forAdapter = SugarRecord.listAll(Contact.class);
+        if (forAdapter.isEmpty()) { // nothing to load, didn't select account?
+            pickAccount();
+            return;
+        }
+
+        ListIterator<Contact> itr = forAdapter.listIterator();
+        while (itr.hasNext()) { // remove us from list, also populate contacts map
+            Contact c = itr.next();
+            mContacts.put(c.getGoogleId(), c);
+            if (c.getGoogleId().equals(ourGoogleId)) {
+                mCurrentPerson = c;
+                itr.remove();
+            }
+        }
+
+        if(mCurrentPerson == null) { // didn't find ourselves, error?
+            pickAccount();
+            return;
+        }
+
+        // successfully loaded cicrles and ourselves from cache
+        mPersonList.setAdapter(new AccountsAdapter(this, forAdapter));
+        mFloatingMenu.showMenu(true);
+        mProgress.animate().alpha(0.0f).setDuration(0).start();
+        supportInvalidateOptionsMenu();
     }
 
     @Override
@@ -262,6 +278,9 @@ public class DebtsListActivity extends AppCompatActivity {
         switch (id) {
             case R.id.action_refresh_debts:
                 getLoaderManager().getLoader(DEBT_REQUEST_LOADER).onContentChanged();
+                return true;
+            case R.id.action_reload_circles:
+                pickAccount();
                 return true;
             case R.id.action_settings:
                 startActivity(new Intent(this, DebtsPrefActivity.class));
@@ -336,9 +355,6 @@ public class DebtsListActivity extends AppCompatActivity {
 
             // Meanwhile, preload circles in background
             Plus.PeopleApi.loadVisible(mGoogleApiClient, null).setResultCallback(this);
-
-            // update visible debts
-            getLoaderManager().getLoader(DEBT_REQUEST_LOADER).onContentChanged();
         }
 
         @Override
@@ -398,14 +414,14 @@ public class DebtsListActivity extends AppCompatActivity {
                     SugarRecord.saveInTx(forAdapter); // save our circles
                     SugarRecord.save(mCurrentPerson); // save us
 
-                    mDebtPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, forAdapter));
+                    mPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, forAdapter));
                     return true;
                 case MSG_DEBT_CREATED:
                     mDebts.add(0, (Debt) msg.obj);
                     mDebtList.getAdapter().notifyItemInserted(0);
 
                     // hide contact list and FAM
-                    toggleContactListVisibility();
+                    mMenuClickListener.onClick(mFloatingMenu);
                     return true;
                 case MSG_AUDIT_LOADED:
                     AuditLogResponse response = (AuditLogResponse) msg.obj;
@@ -573,7 +589,7 @@ public class DebtsListActivity extends AppCompatActivity {
 
         @Override
         public void onClick(View v) {
-            mDebtPersonList.setTag(iAmDest);
+            mPersonList.setTag(iAmDest);
             mFloatingMenu.setIconAnimated(false);
             mFloatingMenu.close(true);
             toggleContactListVisibility();
@@ -616,6 +632,22 @@ public class DebtsListActivity extends AppCompatActivity {
                     mServerEndpoint = sharedPreferences.getString(key, DEFAULT_SERVER_ENDPOINT);
                     return;
             }
+        }
+    }
+
+    private class AccountFilter implements SearchView.OnQueryTextListener {
+        @Override
+        public boolean onQueryTextSubmit(String query) {
+            AccountsAdapter ad = (AccountsAdapter) mPersonList.getAdapter();
+            ad.filter(query);
+            return true;
+        }
+
+        @Override
+        public boolean onQueryTextChange(String newText) {
+            AccountsAdapter ad = (AccountsAdapter) mPersonList.getAdapter();
+            ad.filter(newText);
+            return true;
         }
     }
 }

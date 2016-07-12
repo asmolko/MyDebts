@@ -5,7 +5,7 @@
     <string name="popup_menu">Контекстное меню</string>
     <string name="placeholder_date">10.05.2016</string>
     <string name="cannot_load_circles">Не удалось загрузить контакты из кругов :(</string>
-    <string name="start_writing_name">Начните вводить имя</string>
+    <string name="filter">Фильтр</string>
     <string name="enter_amount">Введите сумму</string>
     <string name="avatar">Аватарка</string>
     <string name="debt_amount">Сумма долга</string>
@@ -27,4 +27,5 @@
     <string name="server_address_summary">Вариант по умолчанию: sorseg.ru:1337</string>
     <string name="server_address_hint"><![CDATA[<host.name>:<port>]]></string>
     <string name="invalid_server_url">Некорректный URL сервера! Сброшено по умолчанию.</string>
+    <string name="reload_contact_list">Обновить список контактов</string>
 </resources>

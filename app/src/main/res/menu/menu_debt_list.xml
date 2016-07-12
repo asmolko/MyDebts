@@ -11,8 +11,15 @@
         app:showAsAction="ifRoom"/>
 
     <item
+        android:id="@+id/action_reload_circles"
+        android:orderInCategory="2"
+        android:title="@string/reload_contact_list"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_settings"
-        android:orderInCategory="100"
+        android:orderInCategory="3"
         android:title="@string/settings"
         app:showAsAction="never" />
+
 </menu>

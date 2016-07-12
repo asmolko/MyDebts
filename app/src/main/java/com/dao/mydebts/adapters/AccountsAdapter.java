@@ -23,7 +23,9 @@ import com.dao.mydebts.entities.Debt;
 import com.dao.mydebts.misc.ImageCache;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -37,6 +39,7 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
     private static final String AA_TAG = AccountsAdapter.class.getSimpleName();
 
     private final List<Contact> mContacts;
+    private final List<Contact> mOriginalContacts; // non-filtered
     private final Context mContext;
     private RecyclerView mParentView;
 
@@ -48,8 +51,12 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
      * @param contacts contacts list to build adapter items from
      */
     public AccountsAdapter(Context context, List<Contact> contacts) {
-        this.mContacts = Collections.unmodifiableList(contacts);
-        this.mContext = context;
+        mContacts = new ArrayList<>(contacts);
+        Collections.sort(this.mContacts, new ByContactName()); // sort by name, don't break UX
+        mOriginalContacts = new ArrayList<>(mContacts);
+        mContext = context;
+
+        setHasStableIds(true);
     }
 
     @Override
@@ -81,8 +88,20 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
     }
 
     @Override
+    public long getItemId(int position) {
+        return mContacts.get(position).getId(); // local DB id
+    }
+
+    @Override
     public int getItemCount() {
         return mContacts.size();
+    }
+
+    private static class ByContactName implements Comparator<Contact> {
+        @Override
+        public int compare(Contact lhs, Contact rhs) {
+            return lhs.getDisplayName().compareTo(rhs.getDisplayName());
+        }
     }
 
     class AccViewHolder extends RecyclerView.ViewHolder {
@@ -137,5 +156,22 @@ public class AccountsAdapter extends RecyclerView.Adapter<AccountsAdapter.AccVie
 
             }
         }
+    }
+
+    public void filter(String text) {
+        if(text.isEmpty()){
+            mContacts.clear();
+            mContacts.addAll(mOriginalContacts);
+        } else{
+            List<Contact> result = new ArrayList<>();
+            for(Contact item : mOriginalContacts) {
+                if(item.getDisplayName().toLowerCase().contains(text.toLowerCase())){
+                    result.add(item);
+                }
+            }
+            mContacts.clear();
+            mContacts.addAll(result);
+        }
+        notifyDataSetChanged();
     }
 }
