@@ -20,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RestController
+
+import javax.persistence.EntityNotFoundException;
 
 /**
  * Main debt system rest controller. Manages creation/approval of debts.
@@ -42,9 +44,6 @@ class DebtsController {
 
     @Autowired
     private StoredActorRepo actorRepo
-
-    @Autowired
-    private StoredAuditEntryRepo auditRepo
 
     @Autowired
     private SettlementEngine settleEngine
@@ -69,7 +68,7 @@ class DebtsController {
     @RequestMapping(value = "/createDebt", method = RequestMethod.POST)
     GenericResponse createDebt(@RequestBody DebtCreationRequest request) {
         if (!request.created) {
-            return new GenericResponse(result: 'not created')
+            throw new InvalidObjectException("Request should contain created debt!")
         }
 
         def entity = StoredDebt.fromDto(request.created)
@@ -90,13 +89,13 @@ class DebtsController {
     @RequestMapping(value = "/approve", method = RequestMethod.POST)
     GenericResponse approveDebt(@RequestBody DebtApprovalRequest request) {
         if (!request.me || !request.debtIdToApprove) {
-            return new GenericResponse(result: 'invalid request')
+            throw new InvalidObjectException("Request should contain approver and debt id to approve!")
         }
 
         def debtToApprove = debtRepo.findOne request.debtIdToApprove
         // sanity checks
         if (!debtToApprove) {
-            return new GenericResponse(result: 'not found')
+            throw new EntityNotFoundException("Cannot find requested debt!")
         }
 
         if (request.me.id == debtToApprove.dest.id && !debtToApprove.approvedByDest) {
@@ -110,7 +109,7 @@ class DebtsController {
             settleEngine.relax stored
             return new GenericResponse(result: 'approved by src')
         } else {
-            return new GenericResponse(result: 'not approved')
+            throw new InvalidObjectException("Can only approve unfinished debts you relate to!")
         }
     }
 
@@ -123,32 +122,25 @@ class DebtsController {
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
     GenericResponse deleteDebt(@RequestBody DebtDeleteRequest request) {
         if (!request.me || !request.debtIdToDelete) {
-            return new GenericResponse(result: 'invalid request')
+            throw new InvalidObjectException("Request should contain requestor and debt id to delete!")
         }
 
         def debtToDelete = debtRepo.findOne request.debtIdToDelete
         // sanity checks
         if (!debtToDelete) {
-            return new GenericResponse(result: 'not found')
+            throw new EntityNotFoundException("Cannot find debt requested!")
         }
 
         if (debtToDelete.approvedByDest && debtToDelete.approvedBySrc) {
-            return new GenericResponse(result: 'not deleted')
+            throw new InvalidObjectException("Cannot delete approved debt!")
         }
 
         // only concerned person can delete debt
         if (debtToDelete.src.id != request.me.id && debtToDelete.dest.id != request.me.id) {
-            return new GenericResponse(result: 'not deleted')
+            throw new InvalidObjectException("You're not related to this debt!")
         }
 
         debtRepo.delete debtToDelete
         return new GenericResponse(result: 'deleted')
-    }
-
-    @RequestMapping(value = "/auditLog", method = RequestMethod.POST)
-    AuditLogResponse auditForDebt(@RequestBody AuditLogRequest request) {
-        AuditLogResponse response = new AuditLogResponse(me: request.me)
-        response.entries = auditRepo.findByDebtId(request.debtId).collect { it.toDto() }
-        return response
     }
 }
