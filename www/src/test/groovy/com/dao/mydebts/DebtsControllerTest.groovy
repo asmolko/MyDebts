@@ -30,9 +30,11 @@ import org.springframework.web.context.WebApplicationContext
 
 import static org.hamcrest.Matchers.contains
 import static org.hamcrest.Matchers.containsInAnyOrder
+import static org.hamcrest.Matchers.containsString
 import static org.hamcrest.Matchers.hasSize
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -217,8 +219,8 @@ class DebtsControllerTest {
     void 'test create null Debt'() {
         def body = gson.gson.toJson new DebtCreationRequest(created: null)
         mock.perform(post('/debt/createDebt').content(body).contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath('$.result', is('not created')))
+            .andExpect(status().is(422))
+            .andExpect(content().string(containsString("Request should contain created debt!")))
     }
 
     @Test
@@ -229,8 +231,8 @@ class DebtsControllerTest {
 
         def body = gson.gson.toJson new DebtApprovalRequest(me: null, debtIdToApprove: storedBefore[1].id)
         mock.perform(post('/debt/approve').content(body).contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath('$.result', is('invalid request')))
+            .andExpect(status().is(422))
+            .andExpect(content().string(containsString("Request should contain approver and debt id to approve!")))
     }
 
     @Test
@@ -242,8 +244,8 @@ class DebtsControllerTest {
         def me = new Actor(id: '100500')
         def body = gson.gson.toJson new DebtApprovalRequest(me: me, debtIdToApprove: null)
         mock.perform(post('/debt/approve').content(body).contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath('$.result', is('invalid request')))
+            .andExpect(status().is(422))
+            .andExpect(content().string(containsString("Request should contain approver and debt id to approve!")))
     }
 
     @Test
@@ -251,12 +253,12 @@ class DebtsControllerTest {
         def me = new Actor(id: '100500')
         def body = gson.gson.toJson new DebtApprovalRequest(me: me, debtIdToApprove: '9001')
         mock.perform(post('/debt/approve').content(body).contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath('$.result', is('not found')))
+            .andExpect(status().is(404))
+            .andExpect(content().string(containsString("Cannot find requested debt!")))
     }
 
     @Test
-    void 'test approval by src'() {
+    void 'test invalid approval by src'() {
         def storedBefore = debtRepo.findByActor '100500'
         assert storedBefore.size() == initialDebts.size()
         assert !storedBefore[1].approvedByDest
@@ -264,16 +266,16 @@ class DebtsControllerTest {
         def me = new Actor(id: '100501')
         def body = gson.gson.toJson new DebtApprovalRequest(me: me, debtIdToApprove: storedBefore[1].id)
         mock.perform(post('/debt/approve').content(body).contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath('$.result', is('not approved')))
+            .andExpect(status().is(422))
+            .andExpect(content().string(containsString("Can only approve unfinished debts you relate to!")))
     }
 
     @Test
     void 'test delete invalid request without `me`'() {
         def body = gson.gson.toJson new DebtDeleteRequest(me: null, debtIdToDelete: '2')
         mock.perform(post('/debt/delete').content(body).contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath('$.result', is('invalid request')))
+            .andExpect(status().is(422))
+            .andExpect(content().string(containsString("Request should contain requestor and debt id to delete!")))
     }
 
     @Test
@@ -281,8 +283,8 @@ class DebtsControllerTest {
         def me = new Actor(id: '100501')
         def body = gson.gson.toJson new DebtDeleteRequest(me: me, debtIdToDelete: null)
         mock.perform(post('/debt/delete').content(body).contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath('$.result', is('invalid request')))
+            .andExpect(status().is(422))
+            .andExpect(content().string(containsString("")))
     }
 
     @Test
@@ -290,8 +292,8 @@ class DebtsControllerTest {
         def me = new Actor(id: '100501')
         def body = gson.gson.toJson new DebtDeleteRequest(me: me, debtIdToDelete: '9001')
         mock.perform(post('/debt/delete').content(body).contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath('$.result', is('not found')))
+            .andExpect(status().is(404))
+            .andExpect(content().string(containsString("Cannot find debt requested!")))
     }
 
     @Test
@@ -303,8 +305,8 @@ class DebtsControllerTest {
 
         def body = gson.gson.toJson new DebtDeleteRequest(me: me, debtIdToDelete: storedBefore[0].id)
         mock.perform(post('/debt/delete').content(body).contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath('$.result', is('not deleted')))
+            .andExpect(status().is(422))
+            .andExpect(content().string(containsString("Cannot delete approved debt!")))
     }
 
     @Test
@@ -316,8 +318,8 @@ class DebtsControllerTest {
         def me = new Actor(id: '9000')
         def body = gson.gson.toJson new DebtDeleteRequest(me: me, debtIdToDelete: storedBefore[1].id)
         mock.perform(post('/debt/delete').content(body).contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath('$.result', is('not deleted')))
+            .andExpect(status().is(422))
+            .andExpect(content().string(containsString("You are not related to this debt!")))
         assert debtRepo.findByActor('100500').size() == initialDebts.size()
     }
 
@@ -338,7 +340,7 @@ class DebtsControllerTest {
 
         def me = new Actor(id: '100500')
         def body = gson.gson.toJson new AuditLogRequest(me: me, debtId: debt.id)
-        mock.perform(post('/debt/auditLog').content(body).contentType(MediaType.APPLICATION_JSON))
+        mock.perform(post('/audit/forDebt').content(body).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath('$.entries', hasSize(2)))
                 .andExpect(jsonPath('$.entries[*].amount', containsInAnyOrder(-12, -50)))

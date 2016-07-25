@@ -66,7 +66,7 @@ class DebtsController {
      * @return response with operation status
      */
     @RequestMapping(value = "/createDebt", method = RequestMethod.POST)
-    GenericResponse createDebt(@RequestBody DebtCreationRequest request) {
+    GenericResponse createDebt(@RequestBody DebtCreationRequest request) throws InvalidObjectException {
         if (!request.created) {
             throw new InvalidObjectException("Request should contain created debt!")
         }
@@ -87,7 +87,7 @@ class DebtsController {
      */
     @Transactional(propagation = Propagation.REQUIRED)
     @RequestMapping(value = "/approve", method = RequestMethod.POST)
-    GenericResponse approveDebt(@RequestBody DebtApprovalRequest request) {
+    GenericResponse approveDebt(@RequestBody DebtApprovalRequest request) throws InvalidObjectException {
         if (!request.me || !request.debtIdToApprove) {
             throw new InvalidObjectException("Request should contain approver and debt id to approve!")
         }
@@ -120,7 +120,7 @@ class DebtsController {
      * @return response with operation status
      */
     @RequestMapping(value = "/delete", method = RequestMethod.POST)
-    GenericResponse deleteDebt(@RequestBody DebtDeleteRequest request) {
+    GenericResponse deleteDebt(@RequestBody DebtDeleteRequest request) throws InvalidObjectException {
         if (!request.me || !request.debtIdToDelete) {
             throw new InvalidObjectException("Request should contain requestor and debt id to delete!")
         }
@@ -137,7 +137,7 @@ class DebtsController {
 
         // only concerned person can delete debt
         if (debtToDelete.src.id != request.me.id && debtToDelete.dest.id != request.me.id) {
-            throw new InvalidObjectException("You're not related to this debt!")
+            throw new InvalidObjectException("You are not related to this debt!")
         }
 
         debtRepo.delete debtToDelete
