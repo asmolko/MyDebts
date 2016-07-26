@@ -19,4 +19,7 @@ interface StoredAuditEntryRepo extends JpaRepository<StoredAuditEntry, String> {
 
     @Query("select e from StoredAuditEntry e where e.settled.src.id = :id or e.settled.dest.id = :id")
     List<StoredAuditEntry> findByUser(@Param("id") String userId)
+
+    @Query("select e from StoredAuditEntry e where e.settleId = :settleId")
+    List<StoredAuditEntry> findByGroup(@Param("settleId") String settleId)
 }

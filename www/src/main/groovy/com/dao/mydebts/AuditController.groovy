@@ -36,10 +36,27 @@ class AuditController {
         return response
     }
 
+    /**
+     * Get audit for user. Returns all audit entries associated with debts related to this user (as debtor or creditor)
+     * @param request request containing actor to search logs for
+     * @return response containing list of all entries
+     */
     @RequestMapping(value = "/forUser", method = RequestMethod.POST)
     AuditLogResponse auditForUser(@RequestBody AuditLogRequest request) {
         AuditLogResponse response = new AuditLogResponse(me: request.me)
         response.entries = auditRepo.findByUser(request.me.id).collect { it.toDto() }
+        return response
+    }
+
+    /**
+     * Get audit for group. Returns all audit entries participated in this group creation.
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = "/forGroup", method = RequestMethod.POST)
+    AuditLogResponse auditForGroup(@RequestBody AuditLogRequest request) {
+        AuditLogResponse response = new AuditLogResponse(me: request.me)
+        response.entries = auditRepo.findByGroup(request.settleId).collect { it.toDto() }
         return response
     }
 

@@ -14,11 +14,19 @@ public class Constants {
     // network-related
     public static final String DEFAULT_SERVER_ENDPOINT = "sorseg.ru:1337";
 
+    // derived from server REST-controllers
+    public static final String SERVICE_DEBTS = "debt";
+    public static final String SERVICE_AUDIT = "audit";
+
+    // derived from debt REST-controller methods
     public static final String PATH_DEBTS = "debts";
     public static final String PATH_CREATE = "createDebt";
     public static final String PATH_APPROVE = "approve";
     public static final String PATH_DELETE = "delete";
-    public static final String PATH_AUDIT = "auditLog";
+
+    // derived from audit REST-controller methods
+    public static final String PATH_FOR_DEBT = "forDebt";
+    public static final String PATH_FOR_USER = "forUser";
 
     public static final MediaType JSON_MIME_TYPE = MediaType.parse("application/json");
 

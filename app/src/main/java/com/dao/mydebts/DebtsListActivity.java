@@ -313,7 +313,7 @@ public class DebtsListActivity extends AppCompatActivity {
                         DebtsRequest postData = new DebtsRequest();
                         postData.setMe(mCurrentPerson.toActor());
 
-                        DebtsResponse dr = postServerRoundtrip(PATH_DEBTS, postData, DebtsResponse.class);
+                        DebtsResponse dr = postServerRoundtrip(SERVICE_DEBTS, PATH_DEBTS, postData, DebtsResponse.class);
                         if (dr != null && dr.getMe().getId().equals(mCurrentPerson.getGoogleId())) {
                             return dr.getDebts();
                         }
@@ -437,29 +437,28 @@ public class DebtsListActivity extends AppCompatActivity {
     }
 
     @Nullable
-    private <REQ, RESP> RESP postServerRoundtrip(String pathSuffix, REQ request, Class<RESP> respClass) {
+    private <REQ, RESP> RESP postServerRoundtrip(String service, String pathSuffix, REQ request, Class<RESP> respClass) {
         Request postQuery = new Request.Builder()
-                .url(String.format("http://%s/debt/%s", mServerEndpoint, pathSuffix))
+                .url(String.format("http://%s/%s/%s", mServerEndpoint, service, pathSuffix))
                 .post(RequestBody.create(Constants.JSON_MIME_TYPE, mJsonSerializer.toJson(request)))
                 .build();
 
         // send request across the network
+        String error = getString(R.string.server_sync_failed);
         try {
-            Response answer = mHttpClient.newCall(postQuery).execute();
+            final Response answer = mHttpClient.newCall(postQuery).execute();
             if (answer.isSuccessful()) {
                 return mJsonSerializer.fromJson(answer.body().string(), respClass);
             }
+
+            // unsuccesful scenario, get narrower error message
+            error = answer.body().string();
         } catch (IOException e) {
             Log.e(DLA_TAG, "Server sync failed, object: " + request, e);
         }
 
         // if we fall this far then something is wrong
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(), R.string.server_sync_failed, Toast.LENGTH_SHORT).show();
-            }
-        });
+        Utils.showToastFromAnyThread(this, error);
         return null;
     }
 
@@ -515,7 +514,7 @@ public class DebtsListActivity extends AppCompatActivity {
                     DebtCreationRequest dcr = new DebtCreationRequest();
                     dcr.setCreated(toCreate);
 
-                    GenericResponse gr = postServerRoundtrip(PATH_CREATE, dcr, GenericResponse.class);
+                    GenericResponse gr = postServerRoundtrip(SERVICE_DEBTS, PATH_CREATE, dcr, GenericResponse.class);
                     if (gr != null && TextUtils.equals(gr.getResult(), "created")) {
                         toCreate.setId(gr.getNewId());
                         Message toUi = Message.obtain(msg);
@@ -533,7 +532,7 @@ public class DebtsListActivity extends AppCompatActivity {
                     dar.setDebtIdToApprove(toApprove.getId());
                     dar.setMe(mCurrentPerson.toActor());
 
-                    GenericResponse gr = postServerRoundtrip(PATH_APPROVE, dar, GenericResponse.class);
+                    GenericResponse gr = postServerRoundtrip(SERVICE_DEBTS, PATH_APPROVE, dar, GenericResponse.class);
                     if (gr != null && TextUtils.equals(gr.getResult(), "approved")) {
                         if (TextUtils.equals(dar.getMe().getId(), toApprove.getSrc().getId())) {
                             toApprove.setApprovedBySrc(true);
@@ -553,7 +552,7 @@ public class DebtsListActivity extends AppCompatActivity {
                     ddr.setDebtIdToDelete(toDelete.getId());
                     ddr.setMe(mCurrentPerson.toActor());
 
-                    GenericResponse gr = postServerRoundtrip(PATH_DELETE, ddr, GenericResponse.class);
+                    GenericResponse gr = postServerRoundtrip(SERVICE_DEBTS, PATH_DELETE, ddr, GenericResponse.class);
                     if (gr != null && TextUtils.equals(gr.getResult(), "deleted")) {
                         getLoaderManager().getLoader(DEBT_REQUEST_LOADER).onContentChanged();
                         return true;
@@ -567,7 +566,7 @@ public class DebtsListActivity extends AppCompatActivity {
                     alr.setDebtId(toRequestAudit.getId());
                     alr.setMe(mCurrentPerson.toActor());
 
-                    AuditLogResponse answer = postServerRoundtrip(PATH_AUDIT, alr, AuditLogResponse.class);
+                    AuditLogResponse answer = postServerRoundtrip(SERVICE_AUDIT, PATH_FOR_DEBT, alr, AuditLogResponse.class);
                     if (answer != null) {
                         mUiHandler.sendMessage(Message.obtain(mUiHandler, MSG_AUDIT_LOADED, answer));
                         return true;
