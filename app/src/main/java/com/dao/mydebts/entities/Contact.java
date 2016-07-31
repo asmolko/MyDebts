@@ -39,7 +39,11 @@ public class Contact {
         return displayName;
     }
 
-    public String getGoogleId() {
+    /**
+     * Returns native id that associates this Contact with external auth system
+     * @return string representing native ID. Should not be null
+     */
+    public String getNativeId() {
         return googleId;
     }
 
@@ -47,6 +51,10 @@ public class Contact {
         return new Actor(googleId);
     }
 
+    /**
+     * Returns internal ID associated with app DB
+     * @return long representing internal ID. Null if contact is not yet persisted.
+     */
     public Long getId() {
         return id;
     }

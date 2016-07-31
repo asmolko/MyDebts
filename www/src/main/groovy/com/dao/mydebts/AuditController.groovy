@@ -56,7 +56,7 @@ class AuditController {
     @RequestMapping(value = "/forGroup", method = RequestMethod.POST)
     AuditLogResponse auditForGroup(@RequestBody AuditLogRequest request) {
         AuditLogResponse response = new AuditLogResponse(me: request.me)
-        response.entries = auditRepo.findByGroup(request.settleId).collect { it.toDto() }
+        response.entries = auditRepo.findByGroup(UUID.fromString(request.settleId)).collect { it.toDto() }
         return response
     }
 

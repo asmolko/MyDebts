@@ -27,6 +27,7 @@ public class Constants {
     // derived from audit REST-controller methods
     public static final String PATH_FOR_DEBT = "forDebt";
     public static final String PATH_FOR_USER = "forUser";
+    public static final String PATH_FOR_GROUP = "forGroup";
 
     public static final MediaType JSON_MIME_TYPE = MediaType.parse("application/json");
 

@@ -5,6 +5,8 @@ import groovy.transform.Canonical
 
 import javax.persistence.Column
 import javax.persistence.Entity
+import javax.persistence.EnumType
+import javax.persistence.Enumerated
 import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Id
@@ -23,9 +25,10 @@ class StoredAuditEntry {
     @GeneratedValue(strategy = GenerationType.AUTO)
     String id
 
-    /**
-     * Settlement unique identifier for grouping
-     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    EventType type;
+
     @Column(nullable = false)
     UUID settleId
 
@@ -33,26 +36,58 @@ class StoredAuditEntry {
     Date created = new Date()
 
     /**
-     * Amount by which debt has changed
+     * When this entry was created
+     */
+    @Column(nullable = false)
+    BigDecimal originalAmount
+
+    /**
+     * Original amount, e.g. what debt had before relaxation
      */
     @Column(nullable = false)
     BigDecimal amount
 
     /**
-     * Debt that was relaxed
+     * Amount by which debt has changed
      */
     @ManyToOne
     StoredDebt settled
 
+    void setSettled(StoredDebt settled) {
+        this.settled = settled
+        this.originalAmount = settled.amount
+    }
+
+    /**
+     * Debt that was relaxed
+     */
     AuditEntry toDto() {
-        return new AuditEntry(created: created,
+        return new AuditEntry(
+                type: AuditEntry.EventType.valueOf(type.toString()),
+                created: created,
+                originalAmount: originalAmount,
                 amount: amount,
-                debt: settled.toDto())
+                settleId: settleId.toString(),
+                settled: settled.toDto())
     }
 
     static StoredAuditEntry fromDto(AuditEntry dto) {
-        return new StoredAuditEntry(amount: dto.amount,
+        return new StoredAuditEntry(
+                type: EventType.valueOf(dto.type.toString()),
                 created: dto.created,
-                settled: StoredDebt.fromDto(dto.debt))
+                originalAmount: dto.originalAmount,
+                amount: dto.amount,
+                settleId: UUID.fromString(dto.settleId),
+                settled: StoredDebt.fromDto(dto.settled))
+    }
+
+    /**
+     * Settlement unique identifier for grouping
+     * This <b>must</b> be same as {@link AuditEntry.EventType}
+     */
+    enum EventType {
+        CYCLE,
+        JOIN,
+        UNKNOWN
     }
 }

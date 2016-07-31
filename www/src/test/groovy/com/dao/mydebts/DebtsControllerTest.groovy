@@ -327,12 +327,14 @@ class DebtsControllerTest {
     void 'test audit log retrieval'() {
         def debt = initialDebts[0]
         def audit11 = new StoredAuditEntry(settleId: UUID.randomUUID(),
-                created: new Date(),
+                type: StoredAuditEntry.EventType.JOIN,
+                originalAmount: 100,
                 amount: -50,
                 settled: debt)
 
         def audit12 = new StoredAuditEntry(settleId: UUID.randomUUID(),
-                created: new Date(),
+                type: StoredAuditEntry.EventType.JOIN,
+                originalAmount: 50,
                 amount: -12,
                 settled: debt)
         auditRepo.saveAndFlush audit11
@@ -344,7 +346,7 @@ class DebtsControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath('$.entries', hasSize(2)))
                 .andExpect(jsonPath('$.entries[*].amount', containsInAnyOrder(-12, -50)))
-                .andExpect(jsonPath('$.entries[*].debt.id', contains(debt.id, debt.id)))
+                .andExpect(jsonPath('$.entries[*].settled.id', contains(debt.id, debt.id)))
 
     }
 }

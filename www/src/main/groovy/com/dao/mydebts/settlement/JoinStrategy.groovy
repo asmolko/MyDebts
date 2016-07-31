@@ -8,6 +8,8 @@ import groovy.util.logging.Log4j
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Controller
 
+import static com.dao.mydebts.entities.StoredAuditEntry.EventType.JOIN
+
 /**
  * Engine implementation based on simple join of two debts with the same src and dest
  *
@@ -33,13 +35,13 @@ class JoinStrategy implements SettlementStrategy {
             it.id != debt.id && it.src == debt.src && it.dest == debt.dest
         }
         log.trace "Found $sameDirectionDebts"
-        sameDirectionDebts.each {
+        sameDirectionDebts.each { // for each old debt to be merged into new
             def uuid = UUID.randomUUID()
 
-            auditEntryRepo.save(new StoredAuditEntry(amount: +it.amount,
-                    created: new Date(), settled: it, settleId: uuid))
-            auditEntryRepo.save(new StoredAuditEntry(amount: -it.amount,
-                    created: new Date(), settled: debt, settleId: uuid))
+            // old amount is decreased
+            auditEntryRepo.save(new StoredAuditEntry(type: JOIN, amount: -it.amount, settled: it, settleId: uuid))
+            // new amount is increased
+            auditEntryRepo.save(new StoredAuditEntry(type: JOIN, amount: +it.amount, settled: debt, settleId: uuid))
 
             debt.amount += it.amount
             it.amount = 0.0

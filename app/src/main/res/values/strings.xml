@@ -28,4 +28,5 @@
     <string name="server_address_hint"><![CDATA[<host.name>:<port>]]></string>
     <string name="invalid_server_url">Некорректный URL сервера! Сброшено по умолчанию.</string>
     <string name="reload_contact_list">Обновить список контактов</string>
+    <string name="arrow_right">➡</string>
 </resources>

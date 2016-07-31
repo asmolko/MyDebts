@@ -40,6 +40,7 @@ import com.dao.mydebts.dto.DebtDeleteRequest;
 import com.dao.mydebts.dto.DebtsRequest;
 import com.dao.mydebts.dto.DebtsResponse;
 import com.dao.mydebts.dto.GenericResponse;
+import com.dao.mydebts.entities.AuditEntry;
 import com.dao.mydebts.entities.Contact;
 import com.dao.mydebts.entities.Debt;
 import com.dao.mydebts.misc.AbstractNetworkLoader;
@@ -82,13 +83,15 @@ public class DebtsListActivity extends AppCompatActivity {
 
     private static final int SIGN_IN_RETURN_CODE = 1050;
 
-    public static final int MSG_CIRCLES_LOADED   = 0; // emitted once G+ circles are loaded from network
-    public static final int MSG_CREATE_DEBT      = 1; // emitted once we call debt creation after entering amount
-    public static final int MSG_DEBT_CREATED     = 2; // emitted after server responded to former with success
-    public static final int MSG_APPROVE_DEBT     = 3; // emitted once we call debt approval after confirm dialog
-    public static final int MSG_DELETE_DEBT      = 4; // emitted once we call debt deletion from popup menu
-    public static final int MSG_AUDIT_DEBT       = 5; // emitted once we call debt audit from popup menu
-    public static final int MSG_AUDIT_LOADED     = 6; // emitted after server responded to former with success
+    public static final int MSG_CIRCLES_LOADED     = 0; // emitted once G+ circles are loaded from network
+    public static final int MSG_CREATE_DEBT        = 1; // emitted once we call debt creation after entering amount
+    public static final int MSG_DEBT_CREATED       = 2; // emitted after server responded to former with success
+    public static final int MSG_APPROVE_DEBT       = 3; // emitted once we call debt approval after confirm dialog
+    public static final int MSG_DELETE_DEBT        = 4; // emitted once we call debt deletion from popup menu
+    public static final int MSG_AUDIT_DEBT         = 5; // emitted once we call debt audit from popup menu
+    public static final int MSG_AUDIT_LOADED       = 6; // emitted after server responded to former with success
+    public static final int MSG_AUDIT_GROUP        = 7; // emitted once we call audit for relaxation action on click
+    public static final int MSG_AUDIT_GROUP_LOADED = 8; // emitted after server responded to former with success
 
     // GUI-related
     private RecyclerView mDebtList;
@@ -202,8 +205,8 @@ public class DebtsListActivity extends AppCompatActivity {
         ListIterator<Contact> itr = forAdapter.listIterator();
         while (itr.hasNext()) { // remove us from list, also populate contacts map
             Contact c = itr.next();
-            mContacts.put(c.getGoogleId(), c);
-            if (c.getGoogleId().equals(ourGoogleId)) {
+            mContacts.put(c.getNativeId(), c);
+            if (c.getNativeId().equals(ourGoogleId)) {
                 mCurrentPerson = c;
                 itr.remove();
             }
@@ -314,7 +317,7 @@ public class DebtsListActivity extends AppCompatActivity {
                         postData.setMe(mCurrentPerson.toActor());
 
                         DebtsResponse dr = postServerRoundtrip(SERVICE_DEBTS, PATH_DEBTS, postData, DebtsResponse.class);
-                        if (dr != null && dr.getMe().getId().equals(mCurrentPerson.getGoogleId())) {
+                        if (dr != null && dr.getMe().getId().equals(mCurrentPerson.getNativeId())) {
                             return dr.getDebts();
                         }
                     } catch (JsonSyntaxException e) {
@@ -351,7 +354,7 @@ public class DebtsListActivity extends AppCompatActivity {
             // Docs suggest to use SignIn API for this, but we can't, as we use Plus
             // noinspection deprecation
             mCurrentPerson = new Contact(Plus.PeopleApi.getCurrentPerson(mGoogleApiClient));
-            AccountHolder.saveGoogleId(DebtsListActivity.this, mCurrentPerson.getGoogleId());
+            AccountHolder.saveGoogleId(DebtsListActivity.this, mCurrentPerson.getNativeId());
 
             // Meanwhile, preload circles in background
             Plus.PeopleApi.loadVisible(mGoogleApiClient, null).setResultCallback(this);
@@ -403,7 +406,7 @@ public class DebtsListActivity extends AppCompatActivity {
         @Override
         public boolean handleMessage(Message msg) {
             switch (msg.what) {
-                case MSG_CIRCLES_LOADED:
+                case MSG_CIRCLES_LOADED: {
                     mProgress.animate().alpha(0.0f).setDuration(500).start();
                     supportInvalidateOptionsMenu();
                     mFloatingMenu.showMenu(true);
@@ -416,20 +419,31 @@ public class DebtsListActivity extends AppCompatActivity {
 
                     mPersonList.setAdapter(new AccountsAdapter(DebtsListActivity.this, forAdapter));
                     return true;
-                case MSG_DEBT_CREATED:
+                }
+                case MSG_DEBT_CREATED: {
                     mDebts.add(0, (Debt) msg.obj);
                     mDebtList.getAdapter().notifyItemInserted(0);
 
                     // hide contact list and FAM
                     mMenuClickListener.onClick(mFloatingMenu);
                     return true;
-                case MSG_AUDIT_LOADED:
+                }
+                case MSG_AUDIT_LOADED: {
                     AuditLogResponse response = (AuditLogResponse) msg.obj;
                     // response object is basically the list of log entries where our debt participated,
                     // best to show it as a list
-                    AuditLogListFragment dialog = AuditLogListFragment.newInstance(response.getEntries());
+                    AuditLogListFragment dialog = AuditLogListFragment.newInstance(mContacts, response.getEntries(), false);
                     dialog.show(getSupportFragmentManager(), "Audit Log Dialog");
                     return true;
+                }
+                case MSG_AUDIT_GROUP_LOADED: {
+                    AuditLogResponse response = (AuditLogResponse) msg.obj;
+                    // response object here is list of log entries possessing the same settleId as requested one
+                    // best to show it as an extended list
+                    AuditLogListFragment dialog = AuditLogListFragment.newInstance(mContacts, response.getEntries(), true);
+                    dialog.show(getSupportFragmentManager(), "Audit Group Log Dialog");
+                    return true;
+                }
             }
 
             return false;
@@ -492,7 +506,6 @@ public class DebtsListActivity extends AppCompatActivity {
      * Callback for notifications that runs on background thread
      */
     private class BackgroundCallback implements Handler.Callback {
-
         @Override
         public boolean handleMessage(Message msg) {
             switch (msg.what) {
@@ -569,6 +582,20 @@ public class DebtsListActivity extends AppCompatActivity {
                     AuditLogResponse answer = postServerRoundtrip(SERVICE_AUDIT, PATH_FOR_DEBT, alr, AuditLogResponse.class);
                     if (answer != null) {
                         mUiHandler.sendMessage(Message.obtain(mUiHandler, MSG_AUDIT_LOADED, answer));
+                        return true;
+                    }
+                    return false;
+                }
+                case MSG_AUDIT_GROUP: {
+                    AuditEntry toRequestAudit = (AuditEntry) msg.obj;
+                    // enclose in request
+                    AuditLogRequest alr = new AuditLogRequest();
+                    alr.setSettleId(toRequestAudit.getSettleId());
+                    alr.setMe(mCurrentPerson.toActor());
+
+                    AuditLogResponse answer = postServerRoundtrip(SERVICE_AUDIT, PATH_FOR_GROUP, alr, AuditLogResponse.class);
+                    if (answer != null) {
+                        mUiHandler.sendMessage(Message.obtain(mUiHandler, MSG_AUDIT_GROUP_LOADED, answer));
                         return true;
                     }
                     return false;

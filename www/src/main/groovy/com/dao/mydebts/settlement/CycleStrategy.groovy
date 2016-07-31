@@ -11,6 +11,8 @@ import groovy.util.logging.Log4j
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Controller
 
+import static com.dao.mydebts.entities.StoredAuditEntry.EventType.*
+
 /**
  * Engine implementation based on simple DFS
  *
@@ -51,9 +53,10 @@ class CycleStrategy implements SettlementStrategy {
     private void settle(Path path) {
         UUID uuid = UUID.randomUUID()
         path.chain.each {
+            // save audit for each debt participating
+            auditEntryRepo.save(new StoredAuditEntry(type: CYCLE, amount: -path.amount, settled: it, settleId: uuid))
+
             it.amount -= path.amount
-            auditEntryRepo.save(new StoredAuditEntry(amount: -path.amount,
-                    created: new Date(), settled: it, settleId: uuid))
             sdRepo.saveAndFlush it
         }
     }
